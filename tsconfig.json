@@ -1,0 +1,11 @@
+{
+  "compilerOptions": {
+    "moduleResolution": "node", // added to make import work without extension
+    "outDir": "dist",
+    "rootDir": "src",
+    "module": "CommonJS", // same in package.json as CommonJS
+    "target": "ES2020",
+    "esModuleInterop": true,
+    "strict": true
+  }
+}
