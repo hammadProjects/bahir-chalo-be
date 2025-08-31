@@ -13,6 +13,9 @@ authRouter.post("/sign-up", signUp);
 authRouter.post("/sign-in", signIn);
 authRouter.post("/verify-otp", verifyOtp);
 authRouter.post("/forget-password", forgetPassword); // initiate
-authRouter.post("/reset-password/:token", resetPassword);
+authRouter.post(
+  "/reset-password/:token",
+  resetPassword
+); /* gets the new password along with uuid to verify */
 
 export default authRouter;

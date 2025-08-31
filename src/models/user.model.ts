@@ -1,6 +1,27 @@
 import { Schema, model } from "mongoose";
+import { UserDocument } from "../utils/types";
 
-const schema = new Schema(
+// consultant sub-document
+const consultantSchema = new Schema({
+  bio: {
+    type: String,
+    trim: true,
+    default: "This is default Consultant bio.",
+  },
+  certificateUrl: {
+    // make route for upload single image - cloudinary (todo)
+    type: String,
+    required: [true, "Please Add some valid certificate."],
+  },
+  status: {
+    type: String,
+    enum: ["pending", "approved", "rejected"],
+    default: "pending",
+    required: false,
+  },
+});
+
+const schema = new Schema<UserDocument>(
   {
     username: {
       type: String,
@@ -46,6 +67,9 @@ const schema = new Schema(
       enum: ["student", "consultant", "admin", "unassigned"],
       default: "unassigned",
     },
+
+    // consultant sub-document
+    consultantProfile: consultantSchema,
   },
   { timestamps: true }
 );

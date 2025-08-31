@@ -1,5 +1,6 @@
 {
   "compilerOptions": {
+    "typeRoots": ["./src/types", "./node_modules/@types"], // making the types recognize from @types folder
     "moduleResolution": "node", // added to make import work without extension
     "outDir": "dist",
     "rootDir": "src",

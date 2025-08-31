@@ -1,30 +1,32 @@
-import { Request, Response } from "express";
+import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { getOtpCode } from "../utils/utils";
 import { validateSignUp } from "../utils/validation";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
 
-export const signUp = async (req: Request, res: Response) => {
+export const signUp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { username, email, password } = req.body;
-    // implement logic with zod (todo)
+    // (todo) - validate using zod
     validateSignUp({ username, email, password });
 
-    const otpCode = getOtpCode();
     // send otp to email (todo)
-    // connect db(todo)
-
+    const otpCode = getOtpCode();
     const hashedPassword = await bcrypt.hash(password, 10);
 
-    // await User.create({ username, email, password : hashedPassword, otpCode });
+    await User.create({ username, email, password: hashedPassword, otpCode });
     return res.status(201).json({
       success: true,
       message: "User created Successfully!",
-      otp: otpCode,
+      otp: otpCode, // (todo) - remove when sent on email
     });
   } catch (error) {
-    console.log(error);
+    next(error);
   }
 };
 
