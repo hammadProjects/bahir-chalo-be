@@ -1,5 +1,7 @@
 import { Schema, model } from "mongoose";
 import { UserDocument } from "../utils/types";
+import jwt from "jsonwebtoken";
+import { CustomError } from "../middlewares/error";
 
 // consultant sub-document
 const consultantSchema = new Schema({
@@ -73,6 +75,18 @@ const schema = new Schema<UserDocument>(
   },
   { timestamps: true }
 );
+
+schema.method("getJwt", function (req, res, next) {
+  const { email, _id } = this;
+
+  // check for valid status code
+  // can throw erros anywhere irrespective of return type of funciton
+  if (!process.env.JWT_SECRET_KEY)
+    throw new CustomError("JWT_SECRET_KEY is Unavailable.", 500);
+  return jwt.sign({ email, id: _id }, process.env.JWT_SECRET_KEY, {
+    expiresIn: "7d",
+  });
+});
 
 const User = model("user", schema);
 export default User;

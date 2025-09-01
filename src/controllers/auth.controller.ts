@@ -4,6 +4,7 @@ import { getOtpCode } from "../utils/utils";
 import { validateSignUp } from "../utils/validation";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
+import { CustomError } from "../middlewares/error";
 
 export const signUp = async (
   req: Request,
@@ -30,74 +31,106 @@ export const signUp = async (
   }
 };
 
-export const signIn = async (req: Request, res: Response) => {
+export const signIn = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { email, password } = req.body;
     const findUser = await User.findOne({ email });
 
-    if (!findUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User Not Found" });
+    if (!findUser) throw new CustomError("User Not Found", 404);
 
-    const isMatched = await bcrypt.compare(password, findUser.password); // returns boolean
-    if (!isMatched)
-      return res
-        .status(400)
-        .json({ success: false, message: "Password is Incorrect" });
+    // returns boolean
+    const isMatched = await bcrypt.compare(password, findUser.password);
 
-    // get jwt_token(todo)
+    // check for valid status code
+    if (!isMatched) throw new CustomError("Password is Incorrect", 400);
+
+    const token = findUser.getJwt(req, res, next);
     res
-      .cookie("token", "jwt_value")
+      .cookie("token", token, {
+        sameSite: true,
+        httpOnly: true,
+        expires: new Date(Date.now() + 604800000),
+      }) // 7 days
       .json({ success: true, message: "Welcome Back!" });
   } catch (error) {
-    console.log(error);
+    next(error);
   }
 };
 
-export const verifyOtp = async (req: Request, res: Response) => {
+export const verifyOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { otpCode, email } = req.body;
     const findUser = await User.findOne({ email });
 
-    if (!findUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User Not Found" });
+    if (!findUser) throw new CustomError("User Not Found", 404);
 
-    if (findUser.otpExpiry > new Date())
-      return res
-        .status(400)
-        .json({ success: false, message: "OTP is expired. Please Try Again!" });
-
-    if (findUser.otpCode != otpCode)
-      return res
-        .status(400)
-        .json({ success: false, message: "OTP is Invalid! Please Try Again" });
+    if (findUser.otpExpiry < new Date() || findUser.otpCode != otpCode)
+      throw new CustomError("OTP is Invalid. Please Try Again!", 400);
 
     // verify OTP to true
     findUser.otpVerified = true;
     await findUser.save();
 
-    // get jwt_token(todo)
-    res.cookie("token", "jwt_value").json({
-      success: true,
-      message: "Welcome! You are successfully Logged In",
-    });
+    const token = findUser.getJwt(req, res, next);
+    res
+      .cookie("token", token, {
+        sameSite: true,
+        httpOnly: true,
+        expires: new Date(Date.now() + 604800000),
+      })
+      .json({
+        success: true,
+        message: "Welcome! You are successfully Logged In",
+      });
   } catch (error) {
-    console.log(error);
+    next(error);
   }
 };
 
-export const forgetPassword = async (req: Request, res: Response) => {
+export const resendVerifyOtp = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { email } = req.body;
+    const findUser = await User.findOne({ email });
+    if (!findUser) throw new CustomError("User Not Found", 404);
+
+    // (todo) - send otp on mail
+    const otpCode = getOtpCode();
+    findUser.otpCode = otpCode;
+    findUser.otpExpiry = new Date(Date.now() + 1000 * 60 * 2);
+    await findUser.save();
+
+    res.status(200).json({
+      success: true,
+      message: `OTP code has been sent to ${email}`,
+      otpCode,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const forgetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { email } = req.body;
     const findUser = await User.findOne({ email });
 
-    if (!findUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User Not Found" });
+    if (!findUser) throw new CustomError("User Not Found", 404);
 
     // send resest link as mail(todo)
     // generate uuid
@@ -107,37 +140,36 @@ export const forgetPassword = async (req: Request, res: Response) => {
 
     res.status(200).json({
       success: true,
-      message: "Reset Link is Sent to your E-mail",
+      message: `Reset Link is Sent to your ${email}`,
       link: `https://www.my-app/reset-password/${findUser.passwordResetId}`,
     });
   } catch (error) {
-    console.log(error);
+    next(error);
   }
 };
 
-export const resetPassword = async (req: Request, res: Response) => {
+export const resetPassword = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
   try {
     const { email, password } = req.body;
-    const { token } = req.params;
+    const { token } = req.params; // uuid from reset sent link
 
     const findUser = await User.findOne({ email });
 
-    if (!findUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User Not Found" });
+    if (!findUser) throw new CustomError("User Not Found", 404);
 
     if (
       findUser.passwordResetExpiry &&
       (findUser.passwordResetExpiry > new Date() ||
         findUser.passwordResetId != token)
     )
-      return res.status(400).json({
-        success: false,
-        message: "Link is expired. Please Try Again!",
-      });
+      throw new CustomError("Link is expired. Please Try Again!", 400);
 
-    findUser.password = password;
+    const hashedPassword = await bcrypt.hash(password, 10);
+    findUser.password = hashedPassword;
     await findUser.save();
 
     res.status(200).json({
@@ -145,6 +177,16 @@ export const resetPassword = async (req: Request, res: Response) => {
       message: "Password is changes Successfully!",
     });
   } catch (error) {
-    console.log(error);
+    next(error);
   }
+};
+
+export const signOut = (req: Request, res: Response) => {
+  // expects a date object
+  res.cookie("token", null, { expires: new Date(Date.now()) });
+  // res.clearCookie("token");
+
+  res
+    .status(200)
+    .json({ success: true, message: "You are Successfully Logged Out" });
 };

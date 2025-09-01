@@ -1,3 +1,4 @@
+import { NextFunction, Request, Response } from "express";
 import { Document } from "mongoose";
 
 export interface UserDocument extends Document {
@@ -15,6 +16,7 @@ export interface UserDocument extends Document {
     certificateUrl: string;
     status: "pending" | "approved" | "rejected";
   };
+  getJwt: (req: Request, res: Response, next: NextFunction) => string;
 }
 
 export interface SignUpData {
