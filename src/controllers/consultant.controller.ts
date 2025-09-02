@@ -22,7 +22,7 @@ export const consultantOnboarding = async (
       loggedInUser.consultantProfile = {
         bio,
         certificateUrl,
-        status: "pending", // just to ensure ts is error free
+        status: "pending", // just to ensure ts is error free (as it is required to enter status)
       };
 
     await loggedInUser.save();

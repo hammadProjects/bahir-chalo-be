@@ -2,7 +2,7 @@ import { Router } from "express";
 import {
   consultantOnboarding,
   getConsultants,
-} from "../controllers/consultant.route";
+} from "../controllers/consultant.controller";
 import { isAuthenticated } from "../middlewares/auth";
 
 const consultantRouter = Router();

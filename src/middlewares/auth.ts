@@ -1,6 +1,8 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { CustomError } from "./error";
+import jwt from "jsonwebtoken";
+import { JwtPayload } from "../utils/types";
 
 export const isAuthenticated = async (
   req: Request,
@@ -9,19 +11,16 @@ export const isAuthenticated = async (
 ) => {
   try {
     const { token } = req.headers;
-    if (!token)
-      return res
-        .status(401)
-        .json({ success: false, message: "You are Not Authenticated" });
+    if (!token || Array.isArray(token))
+      throw new CustomError("Invalid token", 401);
 
-    // (todo) - verfiy token with jwt and get ID
-    const id = "68b3386c896ec1841bb5677f"; // get from token
+    const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
+    if (!JWT_SECRET_KEY)
+      throw new CustomError("JWT_SECRET_KEY is Missing!", 500);
+
+    const { id } = jwt.verify(token, JWT_SECRET_KEY) as JwtPayload; // (todo) - make this better
     const findUser = await User.findById(id);
-    if (!findUser)
-      return res
-        .status(404)
-        .json({ success: false, message: "User not found" });
-
+    if (!findUser) throw new CustomError("User not found", 404);
     req.user = findUser;
     next();
   } catch (error) {

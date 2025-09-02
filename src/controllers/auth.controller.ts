@@ -163,7 +163,7 @@ export const resetPassword = async (
 
     if (
       findUser.passwordResetExpiry &&
-      (findUser.passwordResetExpiry > new Date() ||
+      (findUser.passwordResetExpiry < new Date() ||
         findUser.passwordResetId != token)
     )
       throw new CustomError("Link is expired. Please Try Again!", 400);
