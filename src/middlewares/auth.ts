@@ -39,3 +39,22 @@ export const isAdmin = (req: Request, res: Response, next: NextFunction) => {
     next(error);
   }
 };
+
+export const isConsultant = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const loggedInUser = req.user;
+    if (loggedInUser && loggedInUser.role != "consultant")
+      throw new CustomError(
+        "You can not set Availability as you are Not Consultant!",
+        401
+      );
+
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
