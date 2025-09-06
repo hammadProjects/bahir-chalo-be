@@ -4,7 +4,11 @@ import {
   getConsultants,
 } from "../controllers/consultant.controller";
 import { isAuthenticated, isConsultant } from "../middlewares/auth";
-import { setAvailability } from "../controllers/availability.controller";
+import {
+  deleteAvailability,
+  getAvailability,
+  setAvailability,
+} from "../controllers/availability.controller";
 
 const consultantRouter = Router();
 
@@ -15,6 +19,12 @@ consultantRouter.post(
   isAuthenticated,
   isConsultant,
   setAvailability
+);
+consultantRouter.get("/:id/availability", isAuthenticated, getAvailability);
+consultantRouter.delete(
+  "/availability/:id",
+  isAuthenticated,
+  deleteAvailability
 );
 
 export default consultantRouter;

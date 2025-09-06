@@ -1,9 +1,9 @@
-import { Schema, model, Types } from "mongoose";
+import { Schema, model } from "mongoose";
 
 const schema = new Schema(
   {
     consultantId: {
-      type: Types.ObjectId,
+      type: Schema.Types.ObjectId,
       ref: "User",
       required: [true, "Consultant ID is required"],
     },
