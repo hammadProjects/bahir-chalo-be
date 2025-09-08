@@ -18,13 +18,14 @@ export const consultantOnboarding = async (
         400
       );
 
-    if (!loggedInUser.consultantProfile)
-      loggedInUser.consultantProfile = {
-        bio,
-        certificateUrl,
-        status: "pending", // just to ensure ts is error free (as it is required to enter status)
-      };
+    loggedInUser.consultantProfile = {
+      bio,
+      certificateUrl,
+      status: "pending",
+      // will be verified by admin - just to ensure ts is error free (as it is required to enter status)
+    };
 
+    loggedInUser.role = "consultant";
     await loggedInUser.save();
     res
       .status(200)
