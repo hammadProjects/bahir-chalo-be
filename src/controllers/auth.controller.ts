@@ -48,7 +48,7 @@ export const signIn = async (
     // check for valid status code
     if (!isMatched) throw new CustomError("Password is Incorrect", 400);
 
-    const token = findUser.getJwt(req, res, next);
+    const token = findUser.getJwt();
     res
       .cookie("token", token, {
         sameSite: true,
@@ -79,7 +79,7 @@ export const verifyOtp = async (
     findUser.otpVerified = true;
     await findUser.save();
 
-    const token = findUser.getJwt(req, res, next);
+    const token = findUser.getJwt();
     res
       .cookie("token", token, {
         sameSite: true,

@@ -34,7 +34,7 @@ export const setAvailability = async (
   }
 };
 
-export const getAvailability = async (
+export const getAvailabilityById = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -62,6 +62,41 @@ export const getAvailability = async (
     next(error);
   }
 };
+
+// export const getAllAvailabilities = async (
+//   req: Request,
+//   res: Response,
+//   next: NextFunction
+// ) => {
+//   try {
+//     const loggedInUser = req.user!;
+//     const { consultantId } = req.params;
+
+//     const availabiliies = await Availability.find({ consultantId });
+//     if (loggedInUser.role == "consultant")
+//       return res.json({
+//         success: true,
+//         message: "Availabilities Fetched Successfully",
+//         data: {
+//           availabiliies,
+//         },
+//       });
+
+//     const filteredAvailabilities = availabiliies.filter(
+//       (av) => av.isBooked == false
+//     );
+
+//     return res.json({
+//       success: true,
+//       message: "Availabilities Fetched Successfully",
+//       data: {
+//         filteredAvailabilities,
+//       },
+//     });
+//   } catch (error) {
+//     next(error);
+//   }
+// };
 
 export const deleteAvailability = async (
   req: Request,

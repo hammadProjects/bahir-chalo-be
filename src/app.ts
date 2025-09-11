@@ -9,6 +9,7 @@ import adminRouter from "./routes/admin.route";
 
 import { error } from "./middlewares/error";
 import uploadRouter from "./routes/upload.route";
+import availabilityRouter from "./routes/availability.route";
 
 const app = express();
 
@@ -21,6 +22,7 @@ app.use("/consultant", consultantRouter);
 app.use("/student", studentRouter);
 app.use("/admin", adminRouter);
 app.use("/upload", uploadRouter);
+app.use("/availability", availabilityRouter);
 
 // error
 app.use(error);

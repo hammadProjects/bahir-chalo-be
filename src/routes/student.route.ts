@@ -4,6 +4,6 @@ import { studentOnboarding } from "../controllers/student.controller";
 
 const studentRouter = Router();
 
-studentRouter.post("/onboarding", isAuthenticated, studentOnboarding);
+studentRouter.patch("/onboarding", isAuthenticated, studentOnboarding);
 
 export default studentRouter;

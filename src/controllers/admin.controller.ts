@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { CustomError } from "../middlewares/error";
+import { SAFE_USER_SELECT } from "../utils/utils";
 
 export const verifyConsultant = async (
   req: Request,
@@ -13,7 +14,10 @@ export const verifyConsultant = async (
 
     // (todo) - verify status method in consultant schema
     if (status !== "approved" && status !== "rejected")
-      throw new CustomError("Invalid status", 400);
+      throw new CustomError(
+        "Invalid status: status allowed['approved', 'rejected']",
+        400
+      );
 
     const findConsultant = await User.findById(id); // finding consultant
     if (!findConsultant) throw new CustomError("User Not Found", 404);
@@ -32,6 +36,38 @@ export const verifyConsultant = async (
     res
       .status(200)
       .json({ success: true, message: `The Consultant is ${status}` });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const getPendingConsultants = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const consultants = await User.find({
+      role: "consultant",
+      "consultantProfile.status": "pending",
+    })
+      .select(
+        SAFE_USER_SELECT
+        // exclude all of the fields as they are not intended to shown
+      )
+      .lean(); // when dont want to include methods
+
+    // filtered in db
+
+    // const pendingConsultants = consultants.filter(
+    //   (consultant) => consultant.consultantProfile.status == "pending"
+    // );
+
+    res.status(200).json({
+      success: true,
+      message: "Pending consultants fetched",
+      data: { consultants },
+    });
   } catch (error) {
     next(error);
   }

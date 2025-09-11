@@ -76,7 +76,7 @@ const schema = new Schema<UserDocument>(
   { timestamps: true }
 );
 
-schema.method("getJwt", function (req, res, next) {
+schema.method("getJwt", function () {
   const { email, _id } = this;
 
   // check for valid status code

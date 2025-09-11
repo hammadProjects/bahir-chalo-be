@@ -1,6 +1,6 @@
-import { NextFunction, Request, Response } from "express";
 import { Document } from "mongoose";
 
+// we extended from Document - to make the methods available like .save()
 export interface UserDocument extends Document {
   username: string;
   email: string;
@@ -16,7 +16,7 @@ export interface UserDocument extends Document {
     certificateUrl: string;
     status: "pending" | "approved" | "rejected";
   };
-  getJwt: (req: Request, res: Response, next: NextFunction) => string;
+  getJwt: () => string;
 }
 
 export interface SignUpData {
