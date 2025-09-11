@@ -14,12 +14,10 @@ export const studentOnboarding = async (
     loggedInUser.role = "student";
     await loggedInUser.save();
 
-    res
-      .status(200)
-      .json({
-        success: true,
-        message: "You are successfully Registered as Student",
-      });
+    res.status(200).json({
+      success: true,
+      message: "You are successfully Registered as Student",
+    });
   } catch (error) {
     next(error);
   }
