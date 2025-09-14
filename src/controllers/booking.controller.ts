@@ -2,6 +2,9 @@ import { NextFunction, Request, Response } from "express";
 import Booking from "../models/booking.model";
 import { CustomError } from "../middlewares/error";
 import Availability from "../models/availability.model";
+import User from "../models/user.model";
+import { Schema, startSession } from "mongoose";
+import { creditTransaction } from "../utils/creditTransaction";
 
 export const getMyBookings = async (
   req: Request,
@@ -46,21 +49,37 @@ export const createBooking = async (
   res: Response,
   next: NextFunction
 ) => {
+  const session = await startSession();
   try {
+    session.startTransaction();
     const { availabilityId } = req.params;
     const { consultantId } = req.body;
     const availability = await Availability.findById(availabilityId);
     const loggedInUser = req.user!;
 
+    const consultant = await User.findById(consultantId);
+    if (!consultant) throw new CustomError("Cunsultant Not Found", 404);
+
+    // check if the student have enough credits for booking an appointment
+    if (loggedInUser.credits < 2)
+      throw new CustomError("Insufficient credits", 400);
+
+    // if availability does not exists or already booked or already expired
     if (!availability) throw new CustomError("Availability Not Found", 404);
     if (availability.isBooked)
       throw new CustomError("Availability is Already Booked", 400);
-
     if (availability.startTime < new Date(Date.now()))
       throw new CustomError("Availability is Expired", 400);
 
     availability.isBooked = true;
     await availability.save();
+
+    // transfer credits from student to consultant
+    await creditTransaction({
+      studentId: loggedInUser._id as Schema.Types.ObjectId,
+      consultantId,
+      session,
+    });
 
     const booking = await Booking.create({
       availabilityId,
@@ -68,6 +87,7 @@ export const createBooking = async (
       studentId: loggedInUser._id,
       status: "scheduled",
     });
+    await session.commitTransaction();
 
     res.status(200).json({
       success: true,

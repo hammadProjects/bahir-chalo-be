@@ -11,6 +11,7 @@ export interface UserDocument extends Document {
   passwordResetId: string;
   passwordResetExpiry: Date;
   role: "student" | "consultant" | "admin" | "unassigned";
+  credits: number;
   consultantProfile: {
     bio: string;
     certificateUrl: string;

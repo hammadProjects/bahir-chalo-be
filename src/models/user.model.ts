@@ -69,7 +69,10 @@ const schema = new Schema<UserDocument>(
       enum: ["student", "consultant", "admin", "unassigned"],
       default: "unassigned",
     },
-
+    credits: {
+      type: Number,
+      default: 2,
+    },
     // consultant sub-document
     consultantProfile: consultantSchema,
   },
