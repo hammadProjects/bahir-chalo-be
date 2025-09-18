@@ -30,3 +30,10 @@ export interface JwtPayload {
   id: string;
   email: string;
 }
+
+export type PlanType = "basic" | "standard" | "premium";
+
+export type TransactionType =
+  | "CREDIT_PURCHASE"
+  | "APPOINTMENT_DEDUCTION"
+  | "APPOINTMENT_EARNING";

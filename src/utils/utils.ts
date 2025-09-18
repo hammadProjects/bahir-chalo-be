@@ -3,3 +3,18 @@ export const getOtpCode = () =>
 
 export const SAFE_USER_SELECT =
   "-password -otpCode -otpExpiry -passwordResetId -passwordResetExpiry";
+
+export const PLANS = {
+  basic: {
+    credits: 2,
+    price: 0,
+  },
+  standard: {
+    credits: 12,
+    price: 100,
+  },
+  premium: {
+    credits: 24,
+    price: 100,
+  },
+};

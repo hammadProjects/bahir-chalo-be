@@ -1,116 +1,110 @@
-A full-stack platform that connects students with consultants for study abroad guidance.
-Built with Node.js, Express, MongoDB, React, and Tailwind, the app supports bookings, availability management, authentication, notifications, and video sessions.
-Future versions will integrate AI assistance (OpenAI / Gemini APIs) for personalized student guidance.
+# 🌍 Bahir Chalo
 
-🚀 Features (Modules Completed)
+An **AI-powered platform** that helps students find study abroad opportunities and connect with professional consultants for **1:1 guidance**.  
+Built with **Node.js, Express, MongoDB**.
 
-Authentication & Authorization
+---
 
-Role-based login (student, consultant, admin)
+## 🚀 Features (Modules Completed)
 
-JWT secured endpoints
+### 🔑 Authentication
 
-Availability Management
+- Signup, login, logout
+- OTP verification & resend
+- Password reset (forgot + reset via token)
 
-Consultants can create and manage availability slots
+### 👨‍💼 Consultant Availability
 
-Slots automatically lock once booked
+- Consultants create availability slots
+- Students fetch available slots
+- Consultants delete slots
 
-Booking System
+### 📅 Booking System
 
-Students can book consultant slots
+- Students book a slot by availability ID
+- Students cancel a booking
+- Fetch personal bookings (`/mine`)
+- Admin can view all bookings
+- Fetch booking by ID (admin only)
 
-Bookings can be created, fetched, or deleted
+### 🎓 Onboarding
 
-Admin can view all bookings
+- Student onboarding
+- Consultant onboarding
 
-User Dashboards
+### 👑 Admin
 
-Student dashboard: booked sessions
+- Approve or reject consultant applications
+- Fetch pending consultants
 
-Consultant dashboard: scheduled consultations
+### 📤 Upload
 
-Admin dashboard: system-wide view
+- Upload single file (authenticated)
 
-Notifications (in progress)
+---
 
-Email confirmations with Nodemailer
+## 📌 API Routes
 
-Planned: in-app + push notifications
+### 🔑 Auth
 
-Video Consultation (up next)
+- `POST /auth/signup` → Register
+- `POST /auth/login` → Login
+- `DELETE /auth/session` → Logout
+- `POST /auth/otp/verify` → Verify OTP
+- `POST /auth/otp/resend` → Resend OTP
+- `POST /auth/password/forgot` → Forgot password
+- `PATCH /auth/password/reset/:token` → Reset password
 
-Secure 1:1 video sessions with Twilio Video
+### 👨‍💼 Consultant
 
-Rooms created dynamically per booking
+- `POST /consultant` → Add consultant availability
+- `GET /consultant` → Get consultants
+- `GET /consultant/get-availabilities` → Get availabilities
+- `DELETE /consultant/availability/:id` → Delete availability
+- `PATCH /consultant/onboarding` → Consultant onboarding
 
-AI Integration (planned)
+### 🎓 Student
 
-Use OpenAI/Gemini for personalized guidance
+- `PATCH /student/onboarding` → Student onboarding
 
-E.g., “Suggest top 3 universities for my profile”
+### 📅 Bookings
 
-📌 API Routes (Current & Planned)
-🔑 Auth
+- `GET /booking/mine` → Get my bookings
+- `POST /booking/create/:availabilityId` → Create booking
+- `POST /booking/delete/:bookingId` → Cancel booking
+- `GET /booking/admin/all` → Get all bookings (admin only)
+- `GET /booking/:bookingId` → Get booking by ID (admin only)
 
-POST /api/auth/register → Register user
+### 🗓 Availability
 
-POST /api/auth/login → Login
+- `POST /availability` → Set availability (consultant only)
+- `GET /availability/:id/availability` → Get availability by ID
+- `DELETE /availability/:id` → Delete availability
 
-📅 Availability
+### 👑 Admin
 
-POST /api/availability/create → Consultant creates availability
+- `GET /admin/consultants/pending` → Get pending consultants
+- `PATCH /admin/consultants/:id` → Approve/reject consultant
 
-GET /api/availability/all → Get all available slots
+### 📤 Upload
 
-📖 Bookings
+- `POST /upload/single` → Upload single file
 
-GET /api/bookings/mine → Get my bookings (student/consultant)
+---
 
-POST /api/bookings/create/:availabilityId → Book a slot
+## 🔮 Modules To Be Completed
 
-POST /api/bookings/delete/:bookingId → Cancel booking
+- Notifications (emails, in-app, push)
+- Payments (subscription/credit system)
+- Video Calls
+- AI Guidance (OpenAI / Gemini integration)
 
-GET /api/bookings/admin/all → Admin: fetch all bookings
+---
 
-GET /api/bookings/:id → Get booking by ID (with populated details)
+## 🛠 Tech Stack
 
-📹 Video Sessions (Planned)
-
-POST /api/bookings/:id/session → Create session + token
-
-GET /api/bookings/:id/session → Fetch session details
-
-🔔 Notifications (Planned)
-
-POST /api/notifications/email → Send email confirmation
-
-GET /api/notifications/mine → Fetch my notifications
-
-🤖 AI Guidance (Planned)
-
-POST /api/ai/advice → Generate study abroad advice using OpenAI/Gemini
-
-🛠️ Tech Stack
-
-Backend: Node.js, Express, MongoDB, Mongoose
-
-Frontend: React, Tailwind CSS, shadcn/ui
-
-Video Sessions: Twilio Video SDK
-
-Notifications: Nodemailer (emails), push notifications planned
-
-AI: OpenAI API / Google Gemini API (planned)
-
-🎯 Vision
-
-The goal of this project is to build a production-ready consultation platform that:
-
-Helps students connect with verified consultants
-
-Streamlines the booking + availability workflow
-
-Adds video calls, payments, and AI guidance for a modern experience
-
-Scales for real-world usage (indexes, caching, monitoring to be added later)
+- **Backend**: Node.js, Express, MongoDB, Mongoose
+- **Frontend**: NextJS, Tailwind CSS, shadcn/ui
+- **Auth**: JWT
+- **File Uploads**: Multer, Cloudinary
+- **Planned**: Vonage (video), Nodemailer (email), OpenAI/Gemini (AI)

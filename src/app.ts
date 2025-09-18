@@ -1,4 +1,5 @@
 import express from "express";
+import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config(); // always should run before routes
 
@@ -11,11 +12,19 @@ import bookingRouter from "./routes/booking.route";
 import { error } from "./middlewares/error";
 import uploadRouter from "./routes/upload.route";
 import availabilityRouter from "./routes/availability.route";
+import paymentRouter from "./routes/payment.route";
 
 const app = express();
 
 // middlewares
 app.use(express.json()); // pasrese data coming from body
+app.use(
+  cors({
+    origin: "http://localhost:3001", // no trailing / as cors matches exact same string
+    credentials: true,
+    methods: ["GET", "POST", "PATCH", "DELETE"],
+  })
+);
 
 // routes
 app.use("/auth", authRouter);
@@ -25,6 +34,7 @@ app.use("/admin", adminRouter);
 app.use("/upload", uploadRouter);
 app.use("/availability", availabilityRouter);
 app.use("/booking", bookingRouter);
+app.use("/payment", paymentRouter);
 
 // error
 app.use(error);

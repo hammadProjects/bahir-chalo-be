@@ -10,9 +10,8 @@ export const isAuthenticated = async (
   next: NextFunction
 ) => {
   try {
-    const { token } = req.headers;
-    if (!token || Array.isArray(token))
-      throw new CustomError("Invalid token", 401);
+    const token = req.headers.authorization?.split(" ")[1];
+    if (!token) throw new CustomError("Invalid token", 401);
 
     const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;
     if (!JWT_SECRET_KEY)
@@ -22,6 +21,7 @@ export const isAuthenticated = async (
     const findUser = await User.findById(id);
     if (!findUser) throw new CustomError("User not found", 404);
     req.user = findUser;
+
     next();
   } catch (error) {
     next(error);
@@ -47,11 +47,9 @@ export const isConsultant = (
 ) => {
   try {
     const loggedInUser = req.user;
+    console.log("loggedinuser", loggedInUser);
     if (loggedInUser && loggedInUser.role != "consultant")
-      throw new CustomError(
-        "You can not set Availability as you are Not Consultant!",
-        401
-      );
+      throw new CustomError("Only Consultant can access It!", 401);
 
     next();
   } catch (error) {
