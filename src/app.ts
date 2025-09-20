@@ -13,11 +13,12 @@ import { error } from "./middlewares/error";
 import uploadRouter from "./routes/upload.route";
 import availabilityRouter from "./routes/availability.route";
 import paymentRouter from "./routes/payment.route";
+import User from "./models/user.model";
 
 const app = express();
 
 // middlewares
-app.use(express.json()); // pasrese data coming from body
+app.use(express.json()); // parses data coming from body
 app.use(
   cors({
     origin: "http://localhost:3001", // no trailing / as cors matches exact same string
@@ -35,6 +36,10 @@ app.use("/upload", uploadRouter);
 app.use("/availability", availabilityRouter);
 app.use("/booking", bookingRouter);
 app.use("/payment", paymentRouter);
+
+// const hello = (async () => {
+//   await User.findOneAndDelete({ email: "hammadsarwar2200@gmail.com" });
+// })();
 
 // error
 app.use(error);

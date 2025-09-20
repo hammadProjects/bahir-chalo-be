@@ -47,7 +47,6 @@ export const isConsultant = (
 ) => {
   try {
     const loggedInUser = req.user;
-    console.log("loggedinuser", loggedInUser);
     if (loggedInUser && loggedInUser.role != "consultant")
       throw new CustomError("Only Consultant can access It!", 401);
 

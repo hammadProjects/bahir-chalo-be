@@ -58,7 +58,7 @@ export const createBooking = async (
     const loggedInUser = req.user!;
 
     const consultant = await User.findById(consultantId);
-    if (!consultant) throw new CustomError("Cunsultant Not Found", 404);
+    if (!consultant) throw new CustomError("Consultant Not Found", 404);
 
     // check if the student have enough credits for booking an appointment
     if (loggedInUser.credits < 2)
@@ -66,8 +66,10 @@ export const createBooking = async (
 
     // if availability does not exists or already booked or already expired
     if (!availability) throw new CustomError("Availability Not Found", 404);
+
     if (availability.isBooked)
       throw new CustomError("Availability is Already Booked", 400);
+
     if (availability.startTime < new Date(Date.now()))
       throw new CustomError("Availability is Expired", 400);
 
@@ -87,15 +89,20 @@ export const createBooking = async (
       studentId: loggedInUser._id,
       status: "scheduled",
     });
-    await session.commitTransaction();
+    await session.commitTransaction(); // commit the transaction before sending the response
 
+    // refetch for updated document
+    const updatedUser = await User.findById(loggedInUser._id);
+    if (!updatedUser) throw new CustomError("Student Not Found", 404);
     res.status(200).json({
       success: true,
       message: "Availability Booked Successfully",
-      data: { booking },
+      data: { booking, remainingCredits: updatedUser?.credits },
     });
   } catch (error) {
     next(error);
+  } finally {
+    session.endSession();
   }
 };
 

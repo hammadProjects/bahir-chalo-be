@@ -9,12 +9,17 @@ const schema = new Schema(
     },
     type: {
       type: String,
-      enum: ["CREDIT_PURCHASE", "APPOINTMENT_DEDUCTION", "APPOINTMENT_EARNING"],
+      enum: [
+        "CREDIT_PURCHASE",
+        "APPOINTMENT_DEDUCTION",
+        "APPOINTMENT_EARNING",
+        "PAYOUT_REQUEST",
+      ],
       required: [true, "Transaction type is required"],
     },
     credits: {
       type: Number,
-      min: [1, "Atleast 1 Credit is required for Transaction"],
+      min: [1, "At least 1 Credit is required for Transaction"],
       required: [true, "Credits are required"],
     },
   },
