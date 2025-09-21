@@ -13,8 +13,8 @@ const authRouter = Router();
 
 authRouter.post("/sign-up", signUp);
 authRouter.post("/sign-in", signIn);
-authRouter.post("/verify-otp", verifyOtp);
-authRouter.post("/verify-otp/resend", resendVerifyOtp);
+authRouter.post("/otp/verify", verifyOtp);
+authRouter.post("/otp/resend", resendVerifyOtp);
 authRouter.post("/forget-password", forgetPassword); // initiate forget password
 authRouter.post(
   "/reset-password/:token",
