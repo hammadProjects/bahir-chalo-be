@@ -6,11 +6,14 @@ import {
   signIn,
   signOut,
   signUp,
+  validateToken,
   verifyOtp,
 } from "../controllers/auth.controller";
+import { isAuthenticated } from "../middlewares/auth";
 
 const authRouter = Router();
 
+authRouter.put("/validate-token", isAuthenticated, validateToken);
 authRouter.post("/sign-up", signUp);
 authRouter.post("/sign-in", signIn);
 authRouter.post("/otp/verify", verifyOtp);

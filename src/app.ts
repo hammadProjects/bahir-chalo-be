@@ -19,11 +19,12 @@ const app = express();
 
 // middlewares
 app.use(express.json()); // parses data coming from body
+app.use(express.urlencoded({ extended: true }));
 app.use(
   cors({
-    origin: "http://localhost:3001", // no trailing / as cors matches exact same string
+    origin: "http://localhost:3000", // no trailing / as cors matches exact same string
     credentials: true,
-    methods: ["GET", "POST", "PATCH", "DELETE"],
+    methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
   })
 );
 
