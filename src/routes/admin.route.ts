@@ -1,5 +1,6 @@
 import { Router } from "express";
 import {
+  getAllConsultants,
   getPendingConsultants,
   verifyConsultant,
 } from "../controllers/admin.controller";
@@ -16,10 +17,12 @@ adminRouter.get(
 
 // just little change in the schema
 adminRouter.patch(
-  "/consultants/:id",
+  "/consultant/:id",
   isAuthenticated,
   isAdmin,
   verifyConsultant
 );
+
+adminRouter.get("/consultants", isAuthenticated, isAdmin, getAllConsultants);
 
 export default adminRouter;

@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { CustomError } from "../middlewares/error";
+import { SAFE_USER_SELECT } from "../utils/utils";
 
 export const consultantOnboarding = async (
   req: Request,
@@ -35,18 +36,46 @@ export const consultantOnboarding = async (
   }
 };
 
-export const getConsultants = (
+export const getVerifiedConsultants = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const consultants = User.find({
+    const consultants = await User.find({
       role: "consultant",
       "consultantProfile.status": "approved",
-    });
+    })
+      .select(SAFE_USER_SELECT)
+      .lean();
+
     // (todo) - get by pagination
-    res.send({ success: true, data: consultants });
+    res.status(200).json({
+      success: true,
+      message: "Consultants Fetched Successfuly",
+      data: { consultants },
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
+
+export const getConsultantById = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { id } = req.params;
+    const data = await User.findById(id);
+    if (!data) new CustomError("Invalid Id. Consultant does not exist", 404);
+
+    return res.status(200).json({
+      success: true,
+      message: "Consultant Fetched Successfully",
+      data: { consultant: data },
+    });
   } catch (error) {
     next(error);
   }

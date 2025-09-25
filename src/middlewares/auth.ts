@@ -17,7 +17,8 @@ export const isAuthenticated = async (
     if (!JWT_SECRET_KEY)
       throw new CustomError("JWT_SECRET_KEY is Missing!", 500);
 
-    const { id } = jwt.verify(token, JWT_SECRET_KEY) as JwtPayload; // (todo) - make this better
+    // (todo) - make this better - handle token if expired
+    const { id } = jwt.verify(token, JWT_SECRET_KEY) as JwtPayload;
     const findUser = await User.findById(id);
     if (!findUser) throw new CustomError("User not found", 404);
     req.user = findUser;

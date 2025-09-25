@@ -1,11 +1,23 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
-import { getOtpCode } from "../utils/utils";
+import { getOtpCode, SAFE_USER_SELECT } from "../utils/utils";
 import { validateSignUp } from "../utils/validation";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
 import { CustomError } from "../middlewares/error";
 import { sendEmail } from "../utils/email";
+
+export const validateToken = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  res.status(200).json({
+    success: true,
+    message: "Token is Validated Successfully",
+    role: req.user!?.role,
+  });
+};
 
 export const signUp = async (
   req: Request,
@@ -14,6 +26,11 @@ export const signUp = async (
 ) => {
   try {
     const { username, email, password } = req.body;
+
+    const findUser = await User.findOne({ email });
+    if (findUser)
+      throw new CustomError("User with this email already exisits", 400);
+
     // (todo) - validate using zod
     validateSignUp({ username, email, password });
 
@@ -44,6 +61,7 @@ export const signIn = async (
 ) => {
   try {
     const { email, password } = req.body;
+    console.log(req.body);
     const findUser = await User.findOne({ email });
 
     if (!findUser) throw new CustomError("User Not Found", 404);
@@ -53,14 +71,25 @@ export const signIn = async (
 
     if (!isMatched) throw new CustomError("Password is Incorrect", 401);
 
+    if (findUser.otpVerified == false)
+      throw new CustomError("Please Verify your email with OTP", 401);
+
     const token = findUser.getJwt();
+    const safeUserSelect = await User.findById(findUser._id).select(
+      SAFE_USER_SELECT
+    );
     res
       .cookie("token", token, {
         sameSite: true,
         httpOnly: true,
         expires: new Date(Date.now() + 604800000),
       }) // 7 days
-      .json({ success: true, message: `Welcome Back ${findUser.username}` });
+      .json({
+        success: true,
+        message: `Welcome Back ${findUser.username}`,
+        token,
+        user: safeUserSelect,
+      });
   } catch (error) {
     next(error);
   }
@@ -73,6 +102,7 @@ export const verifyOtp = async (
 ) => {
   try {
     const { otpCode, email } = req.body;
+    console.log(req.body);
     const findUser = await User.findOne({ email });
 
     if (!findUser) throw new CustomError("User Not Found", 404);
@@ -101,6 +131,8 @@ export const verifyOtp = async (
       .json({
         success: true,
         message: "Welcome! You are successfully Logged In",
+        role: findUser.role,
+        token,
       });
   } catch (error) {
     next(error);
@@ -158,7 +190,7 @@ export const forgetPassword = async (
     sendEmail(
       email,
       "Bahir Chalo Password Reset Link",
-      `Your password Reset link is https://www.my-app/reset-password/${findUser.passwordResetId}. Please Click on the link to Change Your Password`
+      `Your password Reset link is http://localhost:3001/reset-password/${findUser.passwordResetId}. Please Click on the link to Change Your Password`
     );
 
     res.status(200).json({

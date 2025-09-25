@@ -72,3 +72,28 @@ export const getPendingConsultants = async (
     next(error);
   }
 };
+
+export const getAllConsultants = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const consultants = await User.find({
+      role: "consultant",
+      "consultantProfile.status": { $ne: "pending" },
+    })
+      .select(SAFE_USER_SELECT)
+      .lean();
+
+    // (todo) - get by pagination
+    res.status(200).json({
+      success: true,
+      message: "Consultants Fetched Successfuly",
+      data: { consultants },
+    });
+  } catch (error) {
+    console.log(error);
+    next(error);
+  }
+};
