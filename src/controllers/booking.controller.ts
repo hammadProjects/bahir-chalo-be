@@ -5,6 +5,7 @@ import Availability from "../models/availability.model";
 import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
+import { SAFE_USER_SELECT } from "../utils/utils";
 
 export const getMyBookings = async (
   req: Request,
@@ -14,32 +15,46 @@ export const getMyBookings = async (
   try {
     const { role, _id } = req.user!;
     if (role != "consultant" && role != "student")
-      throw new CustomError(
-        "No Bookings Yet. Please Complete Onboarding.",
-        401
-      );
+      throw new CustomError("You are not authenticated to View Bookings", 401);
 
-    if (role == "student")
+    if (role == "student") {
+      const studentBookings = await Booking.find({
+        status: "scheduled",
+        studentId: _id,
+      }).populate([
+        { path: "studentId", select: SAFE_USER_SELECT },
+        { path: "consultantId", select: SAFE_USER_SELECT },
+        { path: "availabilityId", select: "startTime endTime" },
+      ]);
+
       return res.status(200).json({
         success: true,
         message: "Booking Fetched Successfully",
         data: {
-          bookings: await Booking.find({ status: "scheduled", studentId: _id }),
+          bookings: studentBookings,
         },
       });
+    }
 
-    //   Consultant
+    // Consultant
+    const consultantBookings = await Booking.find({
+      status: "scheduled",
+      consultantId: _id,
+    }).populate([
+      { path: "studentId", select: SAFE_USER_SELECT },
+      { path: "consultantId", select: SAFE_USER_SELECT },
+      { path: "availabilityId", select: "startTime endTime" },
+    ]);
+
     return res.status(200).json({
       success: true,
       message: "Booking Fetched Successfully",
       data: {
-        bookings: await Booking.find({
-          status: "scheduled",
-          consultantId: _id,
-        }),
+        bookings: consultantBookings,
       },
     });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
@@ -53,28 +68,27 @@ export const createBooking = async (
   try {
     session.startTransaction();
     const { availabilityId } = req.params;
-    const { consultantId } = req.body;
+    const { notes } = req.body;
     const availability = await Availability.findById(availabilityId);
     const loggedInUser = req.user!;
 
+    // if availability does not exists or already booked or already expired
+    if (!availability) throw new CustomError("Availability Not Found", 404);
+
+    const consultantId = availability.consultantId;
     const consultant = await User.findById(consultantId);
+
     if (!consultant) throw new CustomError("Consultant Not Found", 404);
 
     // check if the student have enough credits for booking an appointment
     if (loggedInUser.credits < 2)
       throw new CustomError("Insufficient credits", 400);
 
-    // if availability does not exists or already booked or already expired
-    if (!availability) throw new CustomError("Availability Not Found", 404);
-
-    if (availability.isBooked)
-      throw new CustomError("Availability is Already Booked", 400);
+    if (availability.status === "Booked")
+      throw new CustomError("Appointment is Already Booked", 400);
 
     if (availability.startTime < new Date(Date.now()))
       throw new CustomError("Availability is Expired", 400);
-
-    availability.isBooked = true;
-    await availability.save();
 
     // transfer credits from student to consultant
     await creditTransaction({
@@ -83,23 +97,32 @@ export const createBooking = async (
       session,
     });
 
+    availability.status = "Booked";
+    await availability.save();
+
     const booking = await Booking.create({
       availabilityId,
       consultantId,
       studentId: loggedInUser._id,
       status: "scheduled",
+      notes,
     });
     await session.commitTransaction(); // commit the transaction before sending the response
 
     // refetch for updated document
     const updatedUser = await User.findById(loggedInUser._id);
     if (!updatedUser) throw new CustomError("Student Not Found", 404);
+
     res.status(200).json({
       success: true,
       message: "Availability Booked Successfully",
-      data: { booking, remainingCredits: updatedUser?.credits },
+      data: {
+        booking,
+        remainingCredits: updatedUser?.credits,
+      },
     });
   } catch (error) {
+    console.log(error);
     next(error);
   } finally {
     session.endSession();
@@ -122,11 +145,11 @@ export const deleteBooking = async (
 
     const availability = await Availability.findById(booking.availabilityId);
     if (!availability) throw new CustomError("Availability Not Found", 404);
-    if (!availability.isBooked)
+    if (availability.status === "Booked")
       throw new CustomError("Only Booked Availability can be Deleted", 400);
 
     // Free Availability When Booking is Deleted
-    availability.isBooked = false;
+    availability.status = "Available";
     await availability.save();
     await booking.deleteOne();
     res

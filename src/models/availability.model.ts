@@ -15,9 +15,10 @@ const schema = new Schema(
       type: Date,
       required: [true, "Please Select Ending Time to set Availability"],
     },
-    isBooked: {
-      type: Boolean,
-      default: false,
+    status: {
+      type: String,
+      enum: ["Available", "Booked", "Blocked"],
+      default: "Available",
     },
   },
   { timestamps: true }

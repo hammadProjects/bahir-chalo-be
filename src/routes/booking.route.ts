@@ -13,15 +13,15 @@ const bookingRouter = Router();
 bookingRouter.get("/mine", isAuthenticated, getMyBookings);
 
 // Find Availability then create Booking
-bookingRouter.post("/create/:availabilityId", isAuthenticated, createBooking);
+bookingRouter.post("/:availabilityId", isAuthenticated, createBooking);
 
 // Booking already created
-bookingRouter.post("/delete/:bookingId", isAuthenticated, deleteBooking);
-
-// get all bookings
-bookingRouter.get("/admin/all", isAuthenticated, isAdmin, getAllBookings);
+bookingRouter.delete("/:bookingId", isAuthenticated, deleteBooking);
 
 // get booking by id
 bookingRouter.get("/:bookingId", isAuthenticated, isAdmin, getBookingById);
+
+// get all bookings
+bookingRouter.get("/admin/all", isAuthenticated, isAdmin, getAllBookings);
 
 export default bookingRouter;

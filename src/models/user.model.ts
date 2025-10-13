@@ -7,19 +7,24 @@ import { CustomError } from "../middlewares/error";
 const consultantSchema = new Schema({
   bio: {
     type: String,
-    trim: true,
+    // trim: true,
     default: "This is default Consultant bio.",
   },
   certificateUrl: {
     // make route for upload single image - cloudinary (todo)
     type: String,
-    required: [true, "Please Add some valid certificate."],
+    // required: [true, "Please Add some valid certificate."],
   },
   status: {
     type: String,
     enum: ["pending", "approved", "rejected"],
     default: "pending",
     required: false,
+  },
+  experience: {
+    type: Number,
+    min: [1, "Experience must be atleast 1 year"],
+    // required: true,
   },
 });
 

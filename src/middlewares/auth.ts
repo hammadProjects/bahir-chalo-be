@@ -3,6 +3,7 @@ import User from "../models/user.model";
 import { CustomError } from "./error";
 import jwt from "jsonwebtoken";
 import { JwtPayload } from "../utils/types";
+import { SAFE_USER_SELECT } from "../utils/utils";
 
 export const isAuthenticated = async (
   req: Request,
@@ -19,7 +20,7 @@ export const isAuthenticated = async (
 
     // (todo) - make this better - handle token if expired
     const { id } = jwt.verify(token, JWT_SECRET_KEY) as JwtPayload;
-    const findUser = await User.findById(id);
+    const findUser = await User.findById(id).select(SAFE_USER_SELECT);
     if (!findUser) throw new CustomError("User not found", 404);
     req.user = findUser;
 

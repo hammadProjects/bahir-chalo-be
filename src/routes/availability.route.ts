@@ -2,8 +2,9 @@ import { Router } from "express";
 import { isAuthenticated, isConsultant } from "../middlewares/auth";
 import {
   deleteAvailability,
-  //   getAllAvailabilities,
+  getAllAvailabilities,
   getAvailabilityById,
+  getAvailabilityTimeSlots,
   setAvailability,
 } from "../controllers/availability.controller";
 
@@ -23,10 +24,17 @@ availabilityRouter.delete(
   deleteAvailability
 );
 
-// availabilityRouter.get(
-//   "/:consultantId/all",
-//   isAuthenticated,
-//   getAllAvailabilities
-// );
+availabilityRouter.get(
+  "/",
+  isAuthenticated,
+  isConsultant,
+  getAllAvailabilities
+);
+
+availabilityRouter.get(
+  "/:consultantId/slots",
+  isAuthenticated,
+  getAvailabilityTimeSlots
+);
 
 export default availabilityRouter;

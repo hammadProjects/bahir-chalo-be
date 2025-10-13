@@ -13,7 +13,6 @@ import { error } from "./middlewares/error";
 import uploadRouter from "./routes/upload.route";
 import availabilityRouter from "./routes/availability.route";
 import paymentRouter from "./routes/payment.route";
-import User from "./models/user.model";
 
 const app = express();
 
@@ -44,5 +43,7 @@ app.use("/payment", paymentRouter);
 
 // error
 app.use(error);
+
+// cron-job
 
 export default app;

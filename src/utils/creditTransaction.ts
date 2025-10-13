@@ -1,4 +1,5 @@
-import { ClientSession, Schema, startSession } from "mongoose";
+import { ClientSession, Schema } from "mongoose";
+import mongoose from "mongoose";
 import User from "../models/user.model";
 import Transaction from "../models/transaction.model";
 
@@ -8,13 +9,14 @@ export const creditTransaction = async ({
   session,
 }: {
   studentId: Schema.Types.ObjectId;
-  consultantId: Schema.Types.ObjectId;
+  consultantId: mongoose.Types.ObjectId;
+  // consultantId: string;
   session: ClientSession;
 }) => {
   await User.findByIdAndUpdate(
     studentId,
-    { $inc: { credits: -2 } },
-    { session }
+    { $inc: { credits: -2 } }
+    // { session }
   );
 
   await Transaction.create(
@@ -22,14 +24,14 @@ export const creditTransaction = async ({
       userId: studentId,
       credits: 2,
       type: "APPOINTMENT_DEDUCTION",
-    },
-    { session }
+    }
+    // { session }
   );
 
   await User.findByIdAndUpdate(
     consultantId,
-    { $inc: { credits: 2 } },
-    { session }
+    { $inc: { credits: 2 } }
+    // { session }
   );
 
   await Transaction.create(
@@ -37,7 +39,7 @@ export const creditTransaction = async ({
       userId: consultantId,
       credits: 2,
       type: "APPOINTMENT_EARNING",
-    },
-    { session }
+    }
+    // { session }
   );
 };

@@ -15,6 +15,7 @@ export interface UserDocument extends Document {
   consultantProfile: {
     bio: string;
     certificateUrl: string;
+    experience: number;
     status: "pending" | "approved" | "rejected";
   };
   getJwt: () => string;

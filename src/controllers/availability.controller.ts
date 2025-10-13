@@ -2,7 +2,16 @@ import { NextFunction, Request, Response } from "express";
 import { CustomError } from "../middlewares/error";
 import Availability from "../models/availability.model";
 import User from "../models/user.model";
-import { Types } from "mongoose";
+import { Schema, Types } from "mongoose";
+import {
+  addDays,
+  addMinutes,
+  format,
+  isAfter,
+  isBefore,
+  setHours,
+  setMinutes,
+} from "date-fns";
 
 export const setAvailability = async (
   req: Request,
@@ -18,6 +27,8 @@ export const setAvailability = async (
 
     if (startTime >= endTime)
       throw new CustomError("Availability Time is Invalid", 400);
+
+    await Availability.deleteMany({ consultantId: _id });
 
     const availabilities = await Availability.create({
       consultantId: _id,
@@ -63,40 +74,118 @@ export const getAvailabilityById = async (
   }
 };
 
-// export const getAllAvailabilities = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const loggedInUser = req.user!;
-//     const { consultantId } = req.params;
+export const getAllAvailabilities = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const loggedInUser = req.user!;
+    const availability = await Availability.findOne({
+      consultantId: loggedInUser._id,
+      status: "Available",
+    });
 
-//     const availabiliies = await Availability.find({ consultantId });
-//     if (loggedInUser.role == "consultant")
-//       return res.json({
-//         success: true,
-//         message: "Availabilities Fetched Successfully",
-//         data: {
-//           availabiliies,
-//         },
-//       });
+    if (!availability)
+      throw new CustomError(
+        "The consultant does not have any Availability",
+        404
+      );
 
-//     const filteredAvailabilities = availabiliies.filter(
-//       (av) => av.isBooked == false
-//     );
+    return res.json({
+      success: true,
+      message: "Availabilities Fetched Successfully",
+      data: { availability },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-//     return res.json({
-//       success: true,
-//       message: "Availabilities Fetched Successfully",
-//       data: {
-//         filteredAvailabilities,
-//       },
-//     });
-//   } catch (error) {
-//     next(error);
-//   }
-// };
+export const getAvailabilityTimeSlots = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const loggedInUser = req.user!;
+    const { consultantId } = req.params;
+    const availability = await Availability.findOne({
+      consultantId,
+      status: "Available",
+    });
+
+    if (!availability)
+      throw new CustomError(
+        "The consultant does not have any Availability",
+        404
+      );
+
+    const startHours = availability.startTime.getHours();
+    const startMinutes = availability.startTime.getMinutes();
+    const startTime = setHours(
+      setMinutes(new Date(), startMinutes),
+      startHours
+    );
+
+    const endHours = availability.endTime.getHours();
+    const endMinutes = availability.endTime.getMinutes();
+    const days = [
+      startTime,
+      addDays(startTime, 1),
+      addDays(startTime, 2),
+      addDays(startTime, 3),
+    ];
+    const AvailableSlots: {
+      [key: string]: {
+        startTime: Date;
+        endTime: Date;
+        availabilityId: string;
+        consultantId: string;
+      }[];
+    } = {};
+
+    // isBefore gives false for same time
+    for (const day of days) {
+      let current = day;
+      const todayEnd = setHours(setMinutes(day, endMinutes), endHours);
+      const key = format(day, "eee dd");
+      AvailableSlots[key] = [];
+
+      // here we will neglect booked appointments
+
+      while (
+        isBefore(addMinutes(current, 30), todayEnd) ||
+        addMinutes(current, 30) === todayEnd
+      ) {
+        // (todo) - only get the availabilities if the end time of availability is being greater than now
+        // if (isAfter(addMinutes(current, 30), new Date(Date.now())))
+
+        if (isBefore(current, new Date())) {
+          current = addMinutes(current, 30);
+          continue;
+        }
+
+        AvailableSlots[key].push({
+          startTime: current,
+          endTime: addMinutes(current, 30),
+          consultantId: `${loggedInUser._id}`,
+          availabilityId: `${availability._id}`,
+        });
+
+        current = addMinutes(current, 30);
+      }
+    }
+
+    return res.json({
+      success: true,
+      message: "Availabilities Fetched Successfully",
+      data: { timeSlots: AvailableSlots },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
 export const deleteAvailability = async (
   req: Request,
@@ -119,7 +208,7 @@ export const deleteAvailability = async (
         403
       );
 
-    if (availability.isBooked)
+    if (availability.status === "Booked")
       throw new CustomError("Booked Availability can't be deleted", 400);
 
     await availability.deleteOne();

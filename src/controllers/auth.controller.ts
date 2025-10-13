@@ -16,6 +16,7 @@ export const validateToken = async (
     success: true,
     message: "Token is Validated Successfully",
     role: req.user!?.role,
+    user: req.user!,
   });
 };
 
@@ -61,7 +62,6 @@ export const signIn = async (
 ) => {
   try {
     const { email, password } = req.body;
-    console.log(req.body);
     const findUser = await User.findOne({ email });
 
     if (!findUser) throw new CustomError("User Not Found", 404);
@@ -71,8 +71,20 @@ export const signIn = async (
 
     if (!isMatched) throw new CustomError("Password is Incorrect", 401);
 
-    if (findUser.otpVerified == false)
+    if (findUser.otpVerified == false) {
+      // (todo) - maybe we can put it in some function to reduce redundancy
+      const otpCode = getOtpCode();
+      findUser.otpCode = otpCode;
+      findUser.otpExpiry = new Date(Date.now() + 1000 * 60 * 2);
+      await findUser.save();
+
+      sendEmail(
+        email,
+        "Bahir Chalo OTP Verification Code",
+        `You OTP code is ${otpCode}`
+      );
       throw new CustomError("Please Verify your email with OTP", 401);
+    }
 
     const token = findUser.getJwt();
     const safeUserSelect = await User.findById(findUser._id).select(
@@ -91,6 +103,7 @@ export const signIn = async (
         user: safeUserSelect,
       });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };
@@ -236,8 +249,6 @@ export const resetPassword = async (
 };
 
 export const signOut = (req: Request, res: Response) => {
-  // expects a date object
-  // res.cookie("token", null, { expires: new Date(Date.now()) });
   res.clearCookie("token");
 
   res
