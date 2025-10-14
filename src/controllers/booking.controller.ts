@@ -6,6 +6,7 @@ import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
 import { SAFE_USER_SELECT } from "../utils/utils";
+import { isAfter, isBefore } from "date-fns";
 
 export const getMyBookings = async (
   req: Request,
@@ -68,14 +69,66 @@ export const createBooking = async (
   try {
     session.startTransaction();
     const { availabilityId } = req.params;
-    const { notes } = req.body;
+    let {
+      notes,
+      startTime,
+      endTime,
+    }: { notes: string; startTime: Date; endTime: Date } = req.body;
+    startTime = new Date(startTime);
+    endTime = new Date(endTime);
+
     const availability = await Availability.findById(availabilityId);
     const loggedInUser = req.user!;
 
+    if (!startTime || !endTime)
+      throw new CustomError("Start time and end time are required", 400);
+
+    if (startTime > endTime)
+      throw new CustomError("Start time must be before End time", 400);
+
     // if availability does not exists or already booked or already expired
-    if (!availability) throw new CustomError("Availability Not Found", 404);
+    if (!availability)
+      throw new CustomError("Availability Does NOT Exists", 404);
 
     const consultantId = availability.consultantId;
+    // (todo) - check how this is working no idea
+    const booking = await Booking.findOne({
+      consultantId,
+      $or: [
+        {
+          startTime: { $lt: endTime },
+          endTime: { $gte: startTime },
+        },
+      ],
+    });
+
+    if (booking?.status === "scheduled")
+      throw new CustomError("Appointment is Already Booked in this slot", 400);
+
+    // (todo) - see if in between availability
+    const startOfAvailability =
+      +`${availability?.startTime?.getHours()}${availability?.startTime?.getMinutes()}`;
+    const endOfAvailability =
+      +`${availability?.endTime?.getHours()}${availability?.endTime?.getMinutes()}`;
+
+    const startOfAppointment =
+      +`${startTime?.getHours()}${startTime?.getMinutes()}`;
+    const endOfAppointment = +`${endTime?.getHours()}${endTime?.getMinutes()}`;
+
+    if (
+      startOfAppointment >= endOfAvailability ||
+      startOfAppointment < startOfAvailability ||
+      endOfAppointment <= startOfAvailability ||
+      endOfAppointment > endOfAvailability
+    )
+      throw new CustomError(
+        "Start and end time must be in range of Availability",
+        400
+      );
+
+    if (startTime < new Date(Date.now()))
+      throw new CustomError("Availability is Expired", 400);
+
     const consultant = await User.findById(consultantId);
 
     if (!consultant) throw new CustomError("Consultant Not Found", 404);
@@ -87,8 +140,16 @@ export const createBooking = async (
     if (availability.status === "Booked")
       throw new CustomError("Appointment is Already Booked", 400);
 
-    if (availability.startTime < new Date(Date.now()))
-      throw new CustomError("Availability is Expired", 400);
+    const appointment = await Booking.findOne({
+      startTime,
+      endTime,
+      consultantId,
+      studentId: loggedInUser._id,
+      availabilityId,
+    });
+
+    if (appointment?.status === "scheduled")
+      throw new CustomError("Appointment is already booked", 400);
 
     // transfer credits from student to consultant
     await creditTransaction({
@@ -97,16 +158,18 @@ export const createBooking = async (
       session,
     });
 
-    availability.status = "Booked";
-    await availability.save();
-
-    const booking = await Booking.create({
-      availabilityId,
-      consultantId,
-      studentId: loggedInUser._id,
-      status: "scheduled",
-      notes,
-    });
+    const newBooking = await Booking.create(
+      {
+        availabilityId,
+        consultantId,
+        studentId: loggedInUser._id,
+        startTime,
+        endTime,
+        status: "scheduled",
+        notes,
+      }
+      // { session }
+    );
     await session.commitTransaction(); // commit the transaction before sending the response
 
     // refetch for updated document
@@ -117,7 +180,7 @@ export const createBooking = async (
       success: true,
       message: "Availability Booked Successfully",
       data: {
-        booking,
+        booking: newBooking,
         remainingCredits: updatedUser?.credits,
       },
     });
@@ -135,23 +198,23 @@ export const deleteBooking = async (
   next: NextFunction
 ) => {
   try {
-    const loggedInUser = req.user!;
-    const { bookingId } = req.params;
-    const booking = await Booking.findById(bookingId);
+    // const loggedInUser = req.user!;
+    // const { bookingId } = req.params;
+    // const booking = await Booking.findById(bookingId);
 
-    if (!booking) throw new CustomError("Booking Not Found", 404);
-    if (booking.studentId != loggedInUser._id)
-      throw new CustomError("You Are Not Authorized to Delete Booking", 401);
+    // if (!booking) throw new CustomError("Booking Not Found", 404);
+    // if (booking.studentId != loggedInUser._id)
+    //   throw new CustomError("You Are Not Authorized to Delete Booking", 401);
 
-    const availability = await Availability.findById(booking.availabilityId);
-    if (!availability) throw new CustomError("Availability Not Found", 404);
-    if (availability.status === "Booked")
-      throw new CustomError("Only Booked Availability can be Deleted", 400);
+    // const availability = await Availability.findById(booking.availabilityId);
+    // if (!availability) throw new CustomError("Availability Not Found", 404);
+    // if (availability.status === "Booked")
+    //   throw new CustomError("Only Booked Availability can be Deleted", 400);
 
-    // Free Availability When Booking is Deleted
-    availability.status = "Available";
-    await availability.save();
-    await booking.deleteOne();
+    // // Free Availability When Booking is Deleted
+    // availability.status = "Available";
+    // await availability.save();
+    // await booking.deleteOne();
     res
       .status(200)
       .json({ success: true, message: "Booking Deleted Successfully" });

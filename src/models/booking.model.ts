@@ -16,7 +16,15 @@ const schema = new Schema(
       type: Schema.Types.ObjectId,
       ref: "availability",
       required: [true, "Availability ID is required"],
-      unique: [true, "One Booking Per Availability"],
+      // (todo) - index accordingly so that start time and end time must be unique not availability
+    },
+    startTime: {
+      type: Date,
+      required: true,
+    },
+    endTime: {
+      type: Date,
+      required: true,
     },
     status: {
       type: String,

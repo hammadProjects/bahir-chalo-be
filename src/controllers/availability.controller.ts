@@ -12,6 +12,7 @@ import {
   setHours,
   setMinutes,
 } from "date-fns";
+import Booking from "../models/booking.model";
 
 export const setAvailability = async (
   req: Request,
@@ -161,7 +162,17 @@ export const getAvailabilityTimeSlots = async (
         // (todo) - only get the availabilities if the end time of availability is being greater than now
         // if (isAfter(addMinutes(current, 30), new Date(Date.now())))
 
-        if (isBefore(current, new Date())) {
+        const booking = await Booking.findOne({
+          consultantId,
+          $or: [
+            {
+              startTime: { $lt: addMinutes(current, 30) },
+              endTime: { $gt: current },
+            },
+          ],
+        });
+
+        if (isBefore(current, new Date()) || booking) {
           current = addMinutes(current, 30);
           continue;
         }
