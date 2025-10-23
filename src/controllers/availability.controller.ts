@@ -2,12 +2,11 @@ import { NextFunction, Request, Response } from "express";
 import { CustomError } from "../middlewares/error";
 import Availability from "../models/availability.model";
 import User from "../models/user.model";
-import { Schema, Types } from "mongoose";
+import { Types } from "mongoose";
 import {
   addDays,
   addMinutes,
   format,
-  isAfter,
   isBefore,
   setHours,
   setMinutes,
@@ -21,25 +20,40 @@ export const setAvailability = async (
 ) => {
   try {
     const { _id } = req.user!;
-    const { startTime, endTime } = req.body;
+    let { startTime, endTime } = req.body;
 
-    if (startTime <= Date.now() || endTime <= Date.now())
-      throw new CustomError("Availability Time is Invalid", 400);
+    startTime = new Date(startTime);
+    endTime = new Date(endTime);
 
-    if (startTime >= endTime)
-      throw new CustomError("Availability Time is Invalid", 400);
+    // if (startTime <= Date.now() || endTime <= Date.now())
+    //   throw new CustomError("Availability Time is Invalid", 400);
 
-    await Availability.deleteMany({ consultantId: _id });
+    // if (isBefore(endTime, startTime))
+    //   throw new CustomError("Availability Time is Invalid", 400);
 
-    const availabilities = await Availability.create({
+    const prevAvailability = await Availability.findOne({ consultantId: _id });
+    if (prevAvailability) {
+      prevAvailability.startTime = startTime;
+      prevAvailability.endTime = endTime;
+      await prevAvailability.save();
+
+      return res.status(201).json({
+        success: true,
+        message: "Availability Updated Successfully",
+        data: { availability: prevAvailability },
+      });
+    }
+
+    const availability = await Availability.create({
       consultantId: _id,
       startTime,
       endTime,
     });
+
     res.status(201).json({
       success: true,
       message: "Availability Created",
-      data: availabilities,
+      data: { availability },
     });
   } catch (error) {
     next(error);
@@ -58,24 +72,26 @@ export const getAvailabilityById = async (
     if (!findConsultant || findConsultant.role != "consultant")
       throw new CustomError("Consultant Not Found", 404);
 
-    const availabilities = await Availability.find({
+    const availability = await Availability.find({
       consultantId: id,
       startTime: { $gte: Date.now() }, // (todo) - documents greater than or equal to current date and time
     }).sort({
       startTime: 1, // (todo) - will sort according to startTime in ascending order
     });
 
+    if (!availability) throw new CustomError("Please Set Availability", 404);
+
     res.status(200).json({
       success: true,
-      message: `Availabilities of ${findConsultant.username}.`,
-      data: availabilities,
+      message: `Availability is successfully fetched`,
+      data: availability,
     });
   } catch (error) {
     next(error);
   }
 };
 
-export const getAllAvailabilities = async (
+export const getAvailability = async (
   req: Request,
   res: Response,
   next: NextFunction
@@ -137,6 +153,7 @@ export const getAvailabilityTimeSlots = async (
       addDays(startTime, 2),
       addDays(startTime, 3),
     ];
+
     const AvailableSlots: {
       [key: string]: {
         startTime: Date;
@@ -156,8 +173,8 @@ export const getAvailabilityTimeSlots = async (
       // here we will neglect booked appointments
 
       while (
-        isBefore(addMinutes(current, 30), todayEnd) ||
-        addMinutes(current, 30) === todayEnd
+        isBefore(addMinutes(current, 30), todayEnd)
+        //  || addMinutes(current, 30) === todayEnd
       ) {
         // (todo) - only get the availabilities if the end time of availability is being greater than now
         // if (isAfter(addMinutes(current, 30), new Date(Date.now())))

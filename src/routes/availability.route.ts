@@ -2,7 +2,7 @@ import { Router } from "express";
 import { isAuthenticated, isConsultant } from "../middlewares/auth";
 import {
   deleteAvailability,
-  getAllAvailabilities,
+  getAvailability,
   getAvailabilityById,
   getAvailabilityTimeSlots,
   setAvailability,
@@ -24,12 +24,7 @@ availabilityRouter.delete(
   deleteAvailability
 );
 
-availabilityRouter.get(
-  "/",
-  isAuthenticated,
-  isConsultant,
-  getAllAvailabilities
-);
+availabilityRouter.get("/", isAuthenticated, isConsultant, getAvailability);
 
 availabilityRouter.get(
   "/:consultantId/slots",

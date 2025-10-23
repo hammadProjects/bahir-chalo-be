@@ -6,7 +6,7 @@ import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
 import { SAFE_USER_SELECT } from "../utils/utils";
-import { isAfter, isBefore } from "date-fns";
+import { isBefore } from "date-fns";
 
 export const getMyBookings = async (
   req: Request,
@@ -20,7 +20,7 @@ export const getMyBookings = async (
 
     if (role == "student") {
       const studentBookings = await Booking.find({
-        status: "scheduled",
+        // status: "scheduled",
         studentId: _id,
       }).populate([
         { path: "studentId", select: SAFE_USER_SELECT },
@@ -80,10 +80,13 @@ export const createBooking = async (
     const availability = await Availability.findById(availabilityId);
     const loggedInUser = req.user!;
 
+    if (loggedInUser.role !== "student")
+      throw new CustomError("Only Student can book appointments", 401);
+
     if (!startTime || !endTime)
       throw new CustomError("Start time and end time are required", 400);
 
-    if (startTime > endTime)
+    if (isBefore(endTime, startTime))
       throw new CustomError("Start time must be before End time", 400);
 
     // if availability does not exists or already booked or already expired
@@ -115,16 +118,17 @@ export const createBooking = async (
       +`${startTime?.getHours()}${startTime?.getMinutes()}`;
     const endOfAppointment = +`${endTime?.getHours()}${endTime?.getMinutes()}`;
 
-    if (
-      startOfAppointment >= endOfAvailability ||
-      startOfAppointment < startOfAvailability ||
-      endOfAppointment <= startOfAvailability ||
-      endOfAppointment > endOfAvailability
-    )
-      throw new CustomError(
-        "Start and end time must be in range of Availability",
-        400
-      );
+    // (todo) - make this condition work
+    // if (
+    //   startOfAppointment >= endOfAvailability ||
+    //   startOfAppointment < startOfAvailability ||
+    //   endOfAppointment <= startOfAvailability ||
+    //   endOfAppointment > endOfAvailability
+    // )
+    //   throw new CustomError(
+    //     "Start and end time must be in range of Availability",
+    //     400
+    //   );
 
     if (startTime < new Date(Date.now()))
       throw new CustomError("Availability is Expired", 400);
@@ -192,32 +196,35 @@ export const createBooking = async (
   }
 };
 
-export const deleteBooking = async (
+export const cancelBooking = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    // const loggedInUser = req.user!;
-    // const { bookingId } = req.params;
-    // const booking = await Booking.findById(bookingId);
+    const loggedInUser = req.user!;
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
 
-    // if (!booking) throw new CustomError("Booking Not Found", 404);
-    // if (booking.studentId != loggedInUser._id)
-    //   throw new CustomError("You Are Not Authorized to Delete Booking", 401);
+    if (!booking) throw new CustomError("Booking Not Found", 404);
+    if (booking.status !== "scheduled")
+      throw new CustomError("Booking has already been completed", 400);
 
-    // const availability = await Availability.findById(booking.availabilityId);
-    // if (!availability) throw new CustomError("Availability Not Found", 404);
-    // if (availability.status === "Booked")
-    //   throw new CustomError("Only Booked Availability can be Deleted", 400);
+    if (
+      !booking.studentId.equals(loggedInUser._id as string) &&
+      !booking.consultantId.equals(loggedInUser?._id as string)
+    )
+      throw new CustomError("You are not allowed to delete Booking", 401);
 
-    // // Free Availability When Booking is Deleted
-    // availability.status = "Available";
-    // await availability.save();
-    // await booking.deleteOne();
-    res
-      .status(200)
-      .json({ success: true, message: "Booking Deleted Successfully" });
+    // Free Availability When Booking is Deleted
+    booking.status = "cancelled";
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking Canceled Successfully",
+      remainingCredits: loggedInUser.credits,
+    });
   } catch (error) {
     next(error);
   }
