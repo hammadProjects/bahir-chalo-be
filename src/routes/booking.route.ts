@@ -1,11 +1,12 @@
 import { Router } from "express";
-import { isAdmin, isAuthenticated } from "../middlewares/auth";
+import { isAdmin, isAuthenticated, isConsultant } from "../middlewares/auth";
 import {
   createBooking,
   cancelBooking,
   getAllBookings,
   getBookingById,
   getMyBookings,
+  completeBooking,
 } from "../controllers/booking.controller";
 
 const bookingRouter = Router();
@@ -17,6 +18,14 @@ bookingRouter.post("/:availabilityId", isAuthenticated, createBooking);
 
 // Booking already created
 bookingRouter.delete("/:bookingId", isAuthenticated, cancelBooking);
+
+// Complete Booking
+bookingRouter.put(
+  "/:bookingId",
+  isAuthenticated,
+  isConsultant,
+  completeBooking
+);
 
 // get booking by id
 bookingRouter.get("/:bookingId", isAuthenticated, isAdmin, getBookingById);

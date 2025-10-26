@@ -18,6 +18,14 @@ export interface UserDocument extends Document {
     experience: number;
     status: "pending" | "approved" | "rejected";
   };
+  studentProfile: {
+    recentDegree: string;
+    grades: number;
+    homeCountry: String;
+    courses: string;
+    ieltsScore: string;
+    budget: number;
+  };
   getJwt: () => string;
 }
 

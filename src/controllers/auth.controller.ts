@@ -194,6 +194,8 @@ export const forgetPassword = async (
     const findUser = await User.findOne({ email });
 
     if (!findUser) throw new CustomError("User Not Found", 404);
+    // const baseUrl = "http://localhost:3000/";
+    // const baseUrl = "https://bahir-chalo.vercel.app";
 
     // generate uuid
     findUser.passwordResetId = uuidv4();
@@ -203,7 +205,7 @@ export const forgetPassword = async (
     sendEmail(
       email,
       "Bahir Chalo Password Reset Link",
-      `Your password Reset link is http://localhost:3001/reset-password/${findUser.passwordResetId}. Please Click on the link to Change Your Password`
+      `Your password Reset link is http://localhost:3000/reset-password/${findUser.passwordResetId}. Please Click on the link to Change Your Password`
     );
 
     res.status(200).json({
@@ -223,6 +225,8 @@ export const resetPassword = async (
   try {
     const { email, password } = req.body;
     const { token } = req.params; // uuid from reset sent link
+
+    console.log(email, password);
 
     const findUser = await User.findOne({ email });
 
@@ -244,6 +248,7 @@ export const resetPassword = async (
       message: "Password has been changed Successfully!",
     });
   } catch (error) {
+    console.log(error);
     next(error);
   }
 };

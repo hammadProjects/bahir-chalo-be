@@ -271,3 +271,31 @@ export const getBookingById = async (
     next(error);
   }
 };
+
+export const completeBooking = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
+    if (!booking) throw new CustomError("Booking does not exists", 404);
+
+    if (isBefore(booking.endTime, new Date()))
+      throw new CustomError(
+        "You can only complete appointment after it has been completed",
+        400
+      );
+
+    booking.status = "completed";
+    await booking.save();
+
+    res.status(200).json({
+      success: true,
+      message: "Booking has been completed successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};

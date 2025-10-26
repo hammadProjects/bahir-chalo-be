@@ -1,3 +1,5 @@
+import { UserDocument } from "./types";
+
 export const getOtpCode = () =>
   (Math.floor(Math.random() * 999999) + "").slice(0, 4);
 
@@ -19,21 +21,19 @@ export const PLANS = {
   },
 };
 
-export const generatePrompt = (country: string) => `
+export const generatePrompt = (country: string, loggedInUser: UserDocument) => `
 You are an expert international education consultant helping Pakistani students plan higher studies abroad.
 
 Use the following profile information to generate a short, precise, AI-generated study roadmap for the given country.
 
 Profile:
-- Degree: BS Computer Science
-- CGPA: 3.5/4
-- IELTS: Not taken yet (expected 6.5)
-- Budget: 50 lakhs PKR
+- Degree: ${loggedInUser?.studentProfile?.recentDegree}
+- CGPA: ${loggedInUser?.studentProfile?.grades}
+- IELTS: ${loggedInUser?.studentProfile?.ieltsScore}
+- Budget: ${loggedInUser?.studentProfile?.budget} lakhs PKR
 - Desired Country: ${country}
-- Current Country: Pakistan
-- Degree Core Subjects: DSA, OOP, Programming Fundamentals, Compiler Construction, DAA, Web Dev, ML, Deep Learning
-- Preferred University Type: Practical (not research-based)
-
+- Current Country: ${loggedInUser?.studentProfile?.homeCountry}
+- Degree Core Subjects: ${loggedInUser?.studentProfile?.courses}
 ---
 
 ### Questions to Answer:
@@ -84,7 +84,7 @@ Profile:
 - Keep tone brutally honest and realistic, not sugar-coated
 - If something is not favorable for students, mention it clearly
 - Avoid unnecessary explanations or positivity
-- Don’t skip any question; answer every point in the same schema
+- Don't skip any question; answer every point in the same schema
 - Content must be short and easily readable for frontend users
 
 Return only JSON. Nothing else.

@@ -28,6 +28,16 @@ const consultantSchema = new Schema({
   },
 });
 
+// Student sub-document
+const studentSchema = new Schema({
+  recentDegree: { type: String },
+  grades: { type: Number },
+  homeCountry: { type: String },
+  courses: { type: String },
+  ieltsScore: { type: String },
+  budget: { type: Number }, // in Lakhs
+});
+
 const schema = new Schema<UserDocument>(
   {
     username: {
@@ -80,6 +90,8 @@ const schema = new Schema<UserDocument>(
     },
     // consultant sub-document
     consultantProfile: consultantSchema,
+    // student sub-schema
+    studentProfile: studentSchema,
   },
   { timestamps: true }
 );
