@@ -15,47 +15,54 @@ export const getMyBookings = async (
 ) => {
   try {
     const { role, _id } = req.user!;
-    if (role != "consultant" && role != "student")
+    let { page, limit } = req.query;
+    let pageNum, maxLimit;
+
+    if (typeof page === "string" && typeof limit === "string") {
+      pageNum = +page;
+      maxLimit = +limit;
+    }
+
+    if (
+      !pageNum ||
+      !maxLimit ||
+      typeof pageNum != "number" ||
+      typeof maxLimit != "number"
+    )
+      throw new CustomError("page and limit are required", 400);
+    const skip = (pageNum - 1) * maxLimit;
+
+    if (role !== "consultant" && role !== "student")
       throw new CustomError("You are not authenticated to View Bookings", 401);
 
-    if (role == "student") {
-      const studentBookings = await Booking.find({
-        // status: "scheduled",
-        studentId: _id,
-      }).populate([
+    const filter =
+      role === "student" ? { studentId: _id } : { consultantId: _id };
+
+    const bookings = await Booking.find(filter)
+      .skip(skip)
+      .limit(maxLimit)
+      .sort({ createdAt: -1 })
+      .populate([
         { path: "studentId", select: SAFE_USER_SELECT },
         { path: "consultantId", select: SAFE_USER_SELECT },
         { path: "availabilityId", select: "startTime endTime" },
       ]);
 
-      return res.status(200).json({
-        success: true,
-        message: "Booking Fetched Successfully",
-        data: {
-          bookings: studentBookings,
-        },
-      });
-    }
-
-    // Consultant
-    const consultantBookings = await Booking.find({
-      status: "scheduled",
-      consultantId: _id,
-    }).populate([
-      { path: "studentId", select: SAFE_USER_SELECT },
-      { path: "consultantId", select: SAFE_USER_SELECT },
-      { path: "availabilityId", select: "startTime endTime" },
-    ]);
+    const totalBookings = await Booking.countDocuments(filter);
 
     return res.status(200).json({
       success: true,
       message: "Booking Fetched Successfully",
-      data: {
-        bookings: consultantBookings,
+      pagination: {
+        bookings,
+        totalBookings,
+        totalPages: Math.ceil(totalBookings / maxLimit),
+        hasPrev: pageNum > 1,
+        hasNext: pageNum < Math.ceil(totalBookings / maxLimit),
+        currentPage: pageNum,
       },
     });
   } catch (error) {
-    console.log(error);
     next(error);
   }
 };
@@ -189,7 +196,6 @@ export const createBooking = async (
       },
     });
   } catch (error) {
-    console.log(error);
     next(error);
   } finally {
     session.endSession();
@@ -219,6 +225,9 @@ export const cancelBooking = async (
     // Free Availability When Booking is Deleted
     booking.status = "cancelled";
     await booking.save();
+
+    // loggedInUser?.credits = loggedInUser?.credits + 2;
+    // await loggedInUser.save();
 
     res.status(200).json({
       success: true,

@@ -8,6 +8,7 @@ import {
   addMinutes,
   format,
   isBefore,
+  isEqual,
   setHours,
   setMinutes,
 } from "date-fns";
@@ -127,6 +128,11 @@ export const getAvailabilityTimeSlots = async (
   try {
     const loggedInUser = req.user!;
     const { consultantId } = req.params;
+    const bookings = await Booking.find({
+      consultantId,
+      status: "scheduled",
+    });
+
     const availability = await Availability.findOne({
       consultantId,
       status: "Available",
@@ -171,25 +177,25 @@ export const getAvailabilityTimeSlots = async (
       AvailableSlots[key] = [];
 
       // here we will neglect booked appointments
-
       while (
-        isBefore(addMinutes(current, 30), todayEnd)
-        //  || addMinutes(current, 30) === todayEnd
+        isBefore(addMinutes(current, 30), todayEnd) ||
+        isEqual(addMinutes(current, 30), todayEnd)
       ) {
         // (todo) - only get the availabilities if the end time of availability is being greater than now
         // if (isAfter(addMinutes(current, 30), new Date(Date.now())))
+        // (todo) - check for overlapping bookings directly in MongoDB
 
-        const booking = await Booking.findOne({
-          consultantId,
-          $or: [
-            {
-              startTime: { $lt: addMinutes(current, 30) },
-              endTime: { $gt: current },
-            },
-          ],
+        const isAvailable = bookings.find((bkng) => {
+          if (
+            bkng.startTime.getMinutes() == current.getMinutes() &&
+            bkng.startTime.getHours() === current.getHours() &&
+            bkng.startTime.getDate() === current.getDate()
+          ) {
+            return bkng;
+          }
         });
 
-        if (isBefore(current, new Date()) || booking) {
+        if (isAvailable || isBefore(current, new Date())) {
           current = addMinutes(current, 30);
           continue;
         }

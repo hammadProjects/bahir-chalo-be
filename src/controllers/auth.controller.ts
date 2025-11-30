@@ -103,7 +103,6 @@ export const signIn = async (
         user: safeUserSelect,
       });
   } catch (error) {
-    console.log(error);
     next(error);
   }
 };
@@ -115,7 +114,6 @@ export const verifyOtp = async (
 ) => {
   try {
     const { otpCode, email } = req.body;
-    console.log(req.body);
     const findUser = await User.findOne({ email });
 
     if (!findUser) throw new CustomError("User Not Found", 404);
@@ -226,8 +224,6 @@ export const resetPassword = async (
     const { email, password } = req.body;
     const { token } = req.params; // uuid from reset sent link
 
-    console.log(email, password);
-
     const findUser = await User.findOne({ email });
 
     if (!findUser) throw new CustomError("User Not Found", 404);
@@ -248,7 +244,6 @@ export const resetPassword = async (
       message: "Password has been changed Successfully!",
     });
   } catch (error) {
-    console.log(error);
     next(error);
   }
 };

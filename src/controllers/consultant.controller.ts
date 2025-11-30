@@ -61,7 +61,46 @@ export const getVerifiedConsultants = async (
       data: { consultants },
     });
   } catch (error) {
-    console.log(error);
+    next(error);
+  }
+};
+
+export const searchConsultants = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const search = (req.query?.search as string).trim();
+
+    if (!search) {
+      const consultants = await User.find({
+        role: "consultant",
+        "consultantProfile.status": "approved",
+      });
+
+      res.status(200).json({
+        success: true,
+        message: "consultants fetched successfully",
+        data: { consultants },
+      });
+    }
+
+    const consultants = await User.find({
+      role: "consultant",
+      "consultantProfile.status": "approved",
+      $or: [
+        { username: { $regex: search, $options: "i" } },
+        { "consultantProfile.bio": { $regex: search, $options: "i" } },
+      ],
+    });
+
+    res.status(200).json({
+      success: true,
+      message: "consultants fetched successfully",
+      data: { consultants },
+    });
+  } catch (error) {
     next(error);
   }
 };
