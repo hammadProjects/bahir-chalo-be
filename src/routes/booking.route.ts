@@ -7,6 +7,7 @@ import {
   getBookingById,
   getMyBookings,
   completeBooking,
+  joinAppointment,
 } from "../controllers/booking.controller";
 
 const bookingRouter = Router();
@@ -26,6 +27,8 @@ bookingRouter.put(
   isConsultant,
   completeBooking
 );
+
+bookingRouter.post("/join/:bookingId", isAuthenticated, joinAppointment);
 
 // get booking by id
 bookingRouter.get("/:bookingId", isAuthenticated, isAdmin, getBookingById);

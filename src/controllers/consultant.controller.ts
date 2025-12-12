@@ -105,6 +105,27 @@ export const searchConsultants = async (
   }
 };
 
+export const validateStatus = (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const loggedInUser = req.user;
+
+    if (loggedInUser?.role != "consultant")
+      throw new CustomError("only consultants can view status", 401);
+
+    res.json({
+      success: true,
+      message: "status fetched successfully",
+      status: loggedInUser?.consultantProfile?.status,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
 export const getConsultantById = async (
   req: Request,
   res: Response,

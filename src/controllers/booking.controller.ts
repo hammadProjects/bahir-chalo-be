@@ -6,7 +6,12 @@ import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
 import { SAFE_USER_SELECT } from "../utils/utils";
-import { isBefore } from "date-fns";
+import { isAfter, isBefore } from "date-fns";
+import { v4 as uuidv4 } from "uuid";
+import {
+  addParticipantsInMeeting,
+  createRealtimeMeeting,
+} from "../utils/realtimeCloudflareAPI";
 
 export const getMyBookings = async (
   req: Request,
@@ -169,6 +174,19 @@ export const createBooking = async (
       session,
     });
 
+    let MeetingResponse;
+
+    try {
+      MeetingResponse = await createRealtimeMeeting(
+        `${loggedInUser?.username} - ${consultant?.username}`
+      );
+      console.log(MeetingResponse.data);
+    } catch (error) {
+      await session.abortTransaction();
+      console.log(error);
+      throw new CustomError("Meeting creation failed", 500);
+    }
+
     const newBooking = await Booking.create(
       {
         availabilityId,
@@ -178,9 +196,11 @@ export const createBooking = async (
         endTime,
         status: "scheduled",
         notes,
+        meetingId: MeetingResponse?.data?.data?.id,
       }
       // { session }
     );
+
     await session.commitTransaction(); // commit the transaction before sending the response
 
     // refetch for updated document
@@ -275,6 +295,69 @@ export const getBookingById = async (
       success: true,
       message: "Bookings Fetched Successfully",
       data: { booking },
+    });
+  } catch (error) {
+    next(error);
+  }
+};
+
+export const joinAppointment = async (
+  req: Request,
+  res: Response,
+  next: NextFunction
+) => {
+  try {
+    const loggedInUser = req.user;
+    const { bookingId } = req.params;
+    const booking = await Booking.findById(bookingId);
+    if (!booking) throw new CustomError("Booking does not exists", 404);
+
+    if (!["consultant", "student"].includes(`${loggedInUser?.role}`))
+      throw new CustomError("you are not allowed to join the meeting", 401);
+
+    if (
+      ![`${booking.consultantId}`, `${booking.studentId}`].includes(
+        `${loggedInUser?._id}`
+      )
+    )
+      throw new CustomError("you are not allowed to join the call", 401);
+
+    const now = new Date(Date.now());
+    const beforeFiveMinutes = new Date(
+      new Date(booking?.startTime).getTime() - 5 * 60 * 1000
+    );
+
+    // meeting has already ended
+    // if (isAfter(now, booking?.endTime))
+    //   throw new CustomError("The meeting has already ended", 400);
+
+    // can only join five minutes before meeting starts
+    // if (isBefore(now, beforeFiveMinutes))
+    //   throw new CustomError(
+    //     "You can only join the meeting 5 minutes before the start time.",
+    //     400
+    //   );
+
+    const preset_name =
+      loggedInUser?.role === "student"
+        ? "participant"
+        : loggedInUser?.role === "consultant"
+        ? "host"
+        : "";
+
+    const AddParticipantResponse = await addParticipantsInMeeting(
+      booking?.meetingId,
+      preset_name,
+      `${loggedInUser?._id}`,
+      `${loggedInUser?.username}`
+    );
+
+    return res.json({
+      success: true,
+      data: {
+        token: AddParticipantResponse.data?.data?.token,
+        meetingId: booking?.meetingId,
+      },
     });
   } catch (error) {
     next(error);

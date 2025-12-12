@@ -4,6 +4,7 @@ import { Document } from "mongoose";
 export interface UserDocument extends Document {
   username: string;
   email: string;
+  profilePicture: string;
   password: string;
   otpCode: string;
   otpExpiry: Date;

@@ -5,7 +5,7 @@ import { isAuthenticated } from "../middlewares/auth";
 
 const uploadRouter = Router();
 
-const upload = uploadMiddleware("consultant-certificates");
+const upload = uploadMiddleware("bahir-chalo");
 
 uploadRouter.post(
   "/single",

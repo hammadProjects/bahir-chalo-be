@@ -18,6 +18,10 @@ const schema = new Schema(
       required: [true, "Availability ID is required"],
       // (todo) - index accordingly so that start time and end time must be unique not availability
     },
+    meetingId: {
+      type: String,
+      required: [true, "meeting id is required"],
+    },
     startTime: {
       type: Date,
       required: true,

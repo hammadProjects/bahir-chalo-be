@@ -52,6 +52,10 @@ const schema = new Schema<UserDocument>(
       trim: true,
       required: [true, "Email is required"],
     },
+    profilePicture: {
+      type: String,
+      default: "",
+    },
     password: {
       type: String,
       minLength: [4, "Password must be alteast 4 Characters"],
