@@ -6,42 +6,6 @@ import { generatePrompt } from "../utils/utils";
 import Roadmap from "../models/roadmap.model";
 const genAI = new GoogleGenerativeAI(process.env?.GEMINI_API_KEY!);
 
-export const studentOnboarding = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const loggedInUser = req.user!;
-    if (loggedInUser.role != "unassigned")
-      throw new CustomError("Bad Request", 400);
-
-    const { recentDegree, grades, homeCountry, ieltsScore, budget, courses } =
-      req.body;
-
-    const budgetNumber = +budget;
-    const gradesNumber = +grades;
-
-    loggedInUser.role = "student";
-    loggedInUser.studentProfile = {
-      recentDegree,
-      grades: gradesNumber,
-      homeCountry,
-      ieltsScore,
-      budget: budgetNumber,
-      courses,
-    };
-    await loggedInUser.save();
-
-    res.status(200).json({
-      success: true,
-      message: "You are successfully Registered as Student",
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
 export const generateRoadmap = async (
   req: Request,
   res: Response,

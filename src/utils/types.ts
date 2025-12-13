@@ -23,8 +23,8 @@ export interface UserDocument extends Document {
     recentDegree: string;
     grades: number;
     homeCountry: String;
-    courses: string;
-    ieltsScore: string;
+    courses: string[];
+    ieltsScore: number;
     budget: number;
   };
   getJwt: () => string;

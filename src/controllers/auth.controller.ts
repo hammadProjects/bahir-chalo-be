@@ -1,18 +1,26 @@
 import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { getOtpCode, SAFE_USER_SELECT } from "../utils/utils";
-import { validateSignUp } from "../utils/validation";
 import { v4 as uuidv4 } from "uuid";
 import bcrypt from "bcrypt";
 import { CustomError } from "../middlewares/error";
 import { sendEmail } from "../utils/email";
+import {
+  forgetPasswordBody,
+  resendVerifyOTPBody,
+  resetPasswordBody,
+  resetPasswordParams,
+  signInBody,
+  signUpBody,
+  verifyOTPBody,
+} from "../schemas/auth.schema";
 
 export const validateToken = async (
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
-  res.status(200).json({
+  return res.status(200).json({
     success: true,
     message: "Token is Validated Successfully",
     role: req.user!?.role,
@@ -21,25 +29,22 @@ export const validateToken = async (
 };
 
 export const signUp = async (
-  req: Request,
+  req: Request<{}, {}, signUpBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { username, email, password } = req.body;
+    const { email, password, username } = req.body;
 
     const findUser = await User.findOne({ email });
     if (findUser)
       throw new CustomError("User with this email already exisits", 400);
 
-    // (todo) - validate using zod
-    validateSignUp({ username, email, password });
-
-    // send otp to email (todo)
     const otpCode = getOtpCode();
     const hashedPassword = await bcrypt.hash(password, 10);
 
     await User.create({ username, email, password: hashedPassword, otpCode });
+    // send otp to email
     sendEmail(
       email,
       "Bahir Chalo OTP Verification Code",
@@ -56,7 +61,7 @@ export const signUp = async (
 };
 
 export const signIn = async (
-  req: Request,
+  req: Request<{}, {}, signInBody>,
   res: Response,
   next: NextFunction
 ) => {
@@ -108,7 +113,7 @@ export const signIn = async (
 };
 
 export const verifyOtp = async (
-  req: Request,
+  req: Request<{}, {}, verifyOTPBody>,
   res: Response,
   next: NextFunction
 ) => {
@@ -151,7 +156,7 @@ export const verifyOtp = async (
 };
 
 export const resendVerifyOtp = async (
-  req: Request,
+  req: Request<{}, {}, resendVerifyOTPBody>,
   res: Response,
   next: NextFunction
 ) => {
@@ -182,8 +187,8 @@ export const resendVerifyOtp = async (
   }
 };
 
-export const forgetPassword = async (
-  req: Request,
+export const forgotPassword = async (
+  req: Request<{}, {}, forgetPasswordBody>,
   res: Response,
   next: NextFunction
 ) => {
@@ -216,7 +221,7 @@ export const forgetPassword = async (
 };
 
 export const resetPassword = async (
-  req: Request,
+  req: Request<resetPasswordParams, {}, resetPasswordBody>,
   res: Response,
   next: NextFunction
 ) => {

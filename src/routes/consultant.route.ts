@@ -1,7 +1,5 @@
 import { Router } from "express";
 import {
-  consultantOnboarding,
-  // createDailyAvailabilities,
   getConsultantById,
   getVerifiedConsultants,
   searchConsultants,
@@ -17,6 +15,5 @@ consultantRouter.get("/search", searchConsultants);
 consultantRouter.get("/status/validate", isAuthenticated, validateStatus);
 
 consultantRouter.get("/:id", isAuthenticated, getConsultantById);
-consultantRouter.patch("/onboarding", isAuthenticated, consultantOnboarding);
 
 export default consultantRouter;

@@ -10,14 +10,17 @@ export const PLANS = {
   basic: {
     credits: 2,
     price: 0,
+    priceId: "",
   },
   standard: {
     credits: 12,
     price: 100,
+    priceId: process.env?.STANDARD_PRODUCT_ID,
   },
   premium: {
     credits: 24,
     price: 100,
+    priceId: process.env?.PREMIUM_PRODUCT_ID,
   },
 };
 

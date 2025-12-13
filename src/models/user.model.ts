@@ -33,7 +33,7 @@ const studentSchema = new Schema({
   recentDegree: { type: String },
   grades: { type: Number },
   homeCountry: { type: String },
-  courses: { type: String },
+  courses: { type: [String] },
   ieltsScore: { type: String },
   budget: { type: Number }, // in Lakhs
 });
