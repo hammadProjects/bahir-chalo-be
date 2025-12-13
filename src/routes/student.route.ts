@@ -5,6 +5,7 @@ import {
   getAllRoadmaps,
   getRoadmapById,
 } from "../controllers/student.controller";
+import { limiter } from "../utils/rateLimiters";
 
 const studentRouter = Router();
 
@@ -12,6 +13,11 @@ const studentRouter = Router();
 studentRouter.post(
   "/roadmap/generate/:country",
   isAuthenticated,
+  limiter(
+    "Roadmap generation limit reached for today.",
+    24 * 60 * 60 * 1000,
+    1
+  ),
   generateRoadmap
 );
 // get all previous roadmaps

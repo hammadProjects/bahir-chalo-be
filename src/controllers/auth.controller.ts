@@ -1,55 +1,15 @@
 import { NextFunction, Request, Response } from "express";
-import User from "../models/user.model";
-import { getOtpCode, SAFE_USER_SELECT } from "../utils/utils";
-import { v4 as uuidv4 } from "uuid";
-import bcrypt from "bcrypt";
-import { CustomError } from "../middlewares/error";
-import { sendEmail } from "../utils/email";
-import {
-  forgetPasswordBody,
-  resendVerifyOTPBody,
-  resetPasswordBody,
-  resetPasswordParams,
-  signInBody,
-  signUpBody,
-  verifyOTPBody,
-} from "../schemas/auth.schema";
-
-export const validateToken = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  return res.status(200).json({
-    success: true,
-    message: "Token is Validated Successfully",
-    role: req.user!?.role,
-    user: req.user!,
-  });
-};
+import * as authSchema from "../schemas/auth.schema";
+import * as authService from "../services/auth.service";
 
 export const signUp = async (
-  req: Request<{}, {}, signUpBody>,
+  req: Request<{}, {}, authSchema.signUpBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { email, password, username } = req.body;
-
-    const findUser = await User.findOne({ email });
-    if (findUser)
-      throw new CustomError("User with this email already exisits", 400);
-
-    const otpCode = getOtpCode();
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    await User.create({ username, email, password: hashedPassword, otpCode });
-    // send otp to email
-    sendEmail(
-      email,
-      "Bahir Chalo OTP Verification Code",
-      `You OTP code is ${otpCode}`
-    );
+    await authService.signUp({ email, password, username });
 
     return res.status(201).json({
       success: true,
@@ -61,51 +21,25 @@ export const signUp = async (
 };
 
 export const signIn = async (
-  req: Request<{}, {}, signInBody>,
+  req: Request<{}, {}, authSchema.signInBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { email, password } = req.body;
-    const findUser = await User.findOne({ email });
+    const { token, user } = await authService.signIn({ email, password });
 
-    if (!findUser) throw new CustomError("User Not Found", 404);
-
-    // returns boolean
-    const isMatched = await bcrypt.compare(password, findUser.password);
-
-    if (!isMatched) throw new CustomError("Password is Incorrect", 401);
-
-    if (findUser.otpVerified == false) {
-      // (todo) - maybe we can put it in some function to reduce redundancy
-      const otpCode = getOtpCode();
-      findUser.otpCode = otpCode;
-      findUser.otpExpiry = new Date(Date.now() + 1000 * 60 * 2);
-      await findUser.save();
-
-      sendEmail(
-        email,
-        "Bahir Chalo OTP Verification Code",
-        `You OTP code is ${otpCode}`
-      );
-      throw new CustomError("Please Verify your email with OTP", 401);
-    }
-
-    const token = findUser.getJwt();
-    const safeUserSelect = await User.findById(findUser._id).select(
-      SAFE_USER_SELECT
-    );
     res
       .cookie("token", token, {
         sameSite: true,
         httpOnly: true,
-        expires: new Date(Date.now() + 604800000),
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       }) // 7 days
       .json({
         success: true,
-        message: `Welcome Back ${findUser.username}`,
+        message: `Welcome Back ${user?.username}`,
         token,
-        user: safeUserSelect,
+        user,
       });
   } catch (error) {
     next(error);
@@ -113,41 +47,24 @@ export const signIn = async (
 };
 
 export const verifyOtp = async (
-  req: Request<{}, {}, verifyOTPBody>,
+  req: Request<{}, {}, authSchema.verifyOTPBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { otpCode, email } = req.body;
-    const findUser = await User.findOne({ email });
+    const { token, user } = await authService.verifyOtp({ otpCode, email });
 
-    if (!findUser) throw new CustomError("User Not Found", 404);
-
-    if (findUser.otpExpiry < new Date() || findUser.otpCode != otpCode) {
-      await findUser.updateOne({ otpExpiry: new Date(Date.now()) });
-      throw new CustomError("OTP is Invalid. Please Try Again!", 400);
-    }
-
-    // verify OTP to true
-    findUser.otpVerified = true;
-    await findUser.save();
-
-    const token = findUser.getJwt();
-    sendEmail(
-      email,
-      "Bahir Chalo Account Verified",
-      `Congratulations ${findUser.username}. You are Successfully Verified.`
-    );
     res
       .cookie("token", token, {
         sameSite: true,
         httpOnly: true,
-        expires: new Date(Date.now() + 604800000),
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       })
       .json({
         success: true,
         message: "Welcome! You are successfully Logged In",
-        role: findUser.role,
+        role: user?.role,
         token,
       });
   } catch (error) {
@@ -156,31 +73,17 @@ export const verifyOtp = async (
 };
 
 export const resendVerifyOtp = async (
-  req: Request<{}, {}, resendVerifyOTPBody>,
+  req: Request<{}, {}, authSchema.resendVerifyOTPBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { email } = req.body;
-    const findUser = await User.findOne({ email });
-    if (!findUser) throw new CustomError("User Not Found", 404);
-    if (findUser.otpVerified)
-      throw new CustomError("You are already Verified", 400);
-
-    const otpCode = getOtpCode();
-    findUser.otpCode = otpCode;
-    findUser.otpExpiry = new Date(Date.now() + 1000 * 60 * 2);
-    await findUser.save();
-
-    sendEmail(
-      email,
-      "Bahir Chalo OTP Verification Code",
-      `You OTP code is ${otpCode}`
-    );
+    const { user } = await authService.resendVerifyOtp({ email });
 
     return res.status(201).json({
       success: true,
-      message: `OPT code has been sent to ${email}`,
+      message: `OPT code has been sent to ${user?.email}`,
     });
   } catch (error) {
     next(error);
@@ -188,28 +91,13 @@ export const resendVerifyOtp = async (
 };
 
 export const forgotPassword = async (
-  req: Request<{}, {}, forgetPasswordBody>,
+  req: Request<{}, {}, authSchema.forgetPasswordBody>,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { email } = req.body;
-    const findUser = await User.findOne({ email });
-
-    if (!findUser) throw new CustomError("User Not Found", 404);
-    // const baseUrl = "http://localhost:3000/";
-    // const baseUrl = "https://bahir-chalo.vercel.app";
-
-    // generate uuid
-    findUser.passwordResetId = uuidv4();
-    findUser.passwordResetExpiry = new Date(Date.now() + 1000 * 60 * 5);
-    await findUser.save();
-
-    sendEmail(
-      email,
-      "Bahir Chalo Password Reset Link",
-      `Your password Reset link is http://localhost:3000/reset-password/${findUser.passwordResetId}. Please Click on the link to Change Your Password`
-    );
+    await authService.forgotPassword({ email });
 
     res.status(200).json({
       success: true,
@@ -221,28 +109,18 @@ export const forgotPassword = async (
 };
 
 export const resetPassword = async (
-  req: Request<resetPasswordParams, {}, resetPasswordBody>,
+  req: Request<
+    authSchema.resetPasswordParams,
+    {},
+    authSchema.resetPasswordBody
+  >,
   res: Response,
   next: NextFunction
 ) => {
   try {
     const { email, password } = req.body;
     const { token } = req.params; // uuid from reset sent link
-
-    const findUser = await User.findOne({ email });
-
-    if (!findUser) throw new CustomError("User Not Found", 404);
-
-    if (
-      findUser.passwordResetExpiry &&
-      (findUser.passwordResetExpiry < new Date() ||
-        findUser.passwordResetId != token)
-    )
-      throw new CustomError("Link is expired. Please Try Again!", 400);
-
-    const hashedPassword = await bcrypt.hash(password, 10);
-    findUser.password = hashedPassword;
-    await findUser.save();
+    await authService.resetPassword({ email, password, token });
 
     res.status(200).json({
       success: true,
@@ -253,10 +131,19 @@ export const resetPassword = async (
   }
 };
 
-export const signOut = (req: Request, res: Response) => {
-  res.clearCookie("token");
+export const validateToken = async (req: Request, res: Response) => {
+  const loggedInUser = req.user;
+  return res.status(200).json({
+    success: true,
+    message: "Token is Validated Successfully",
+    role: loggedInUser?.role,
+    user: loggedInUser,
+  });
+};
 
+export const signOut = (req: Request, res: Response) => {
   res
+    .clearCookie("token")
     .status(200)
     .json({ success: true, message: "You are Successfully Logged Out" });
 };
