@@ -1,17 +1,9 @@
 import nodemailer from "nodemailer";
 
-if (!process.env.APP_EMAIL) throw new Error("APP_EMAIL is Missing");
-if (!process.env.APP_PASSWORD) throw new Error("APP_PASSWORD is Missing");
-
-const transporter = nodemailer.createTransport({
-  service: "gmail",
-  auth: {
-    user: process.env.APP_EMAIL,
-    pass: process.env.APP_PASSWORD,
-  },
-});
-
 export const sendEmail = (email: string, subject: string, content: string) => {
+  if (!process.env.APP_EMAIL) throw new Error("APP_EMAIL is Missing");
+  if (!process.env.APP_PASSWORD) throw new Error("APP_PASSWORD is Missing");
+
   if (!email || !subject || !content)
     throw new Error("Email, subject and content are required");
   const mailOptions = {
@@ -20,6 +12,14 @@ export const sendEmail = (email: string, subject: string, content: string) => {
     subject,
     text: `${content}`,
   };
+
+  const transporter = nodemailer.createTransport({
+    service: "gmail",
+    auth: {
+      user: process.env.APP_EMAIL,
+      pass: process.env.APP_PASSWORD,
+    },
+  });
 
   transporter.sendMail(mailOptions, (error, info) => {
     if (error) console.log(error);
