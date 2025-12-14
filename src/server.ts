@@ -2,13 +2,18 @@ import { Request, Response } from "express";
 import app from "./app";
 import { connectDB } from "./config/database";
 
-const PORT = process.env.PORT || 3000;
+// const PORT = process.env.PORT || 3000;
 
-connectDB();
+let isConnected = false;
 
-app.listen(PORT, () => {
-  console.log(`App is running at ${PORT}`);
-});
+if (!isConnected) {
+  connectDB();
+  isConnected = true;
+}
+
+// app.listen(PORT, () => {
+//   console.log(`App is running at ${PORT}`);
+// });
 
 app.get("/", (req: Request, res: Response) => {
   res.send("helo world from bahir chalo be");

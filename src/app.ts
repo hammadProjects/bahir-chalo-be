@@ -3,7 +3,7 @@ import cors from "cors";
 import dotenv from "dotenv";
 import { validateEnv } from "./utils/validateEnv";
 dotenv.config(); // always should run before routes
-validateEnv();
+// validateEnv();
 
 import authRouter from "./routes/auth.route";
 import consultantRouter from "./routes/consultant.route";

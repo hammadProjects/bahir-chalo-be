@@ -1,10 +1,8 @@
 import { Router } from "express";
-import {
-  getAllConsultants,
-  getPendingConsultants,
-  verifyConsultant,
-} from "../controllers/admin.controller";
+import * as adminController from "../controllers/admin.controller";
 import { isAdmin, isAuthenticated } from "../middlewares/auth";
+import validateRequest from "../middlewares/validateRequest";
+import { verifyConsultantSchema } from "../schemas/admin.schema";
 
 const adminRouter = Router();
 
@@ -12,17 +10,22 @@ adminRouter.get(
   "/consultants/pending",
   isAuthenticated,
   isAdmin,
-  getPendingConsultants
+  adminController.getPendingConsultants
 );
 
-// just little change in the schema
 adminRouter.patch(
   "/consultant/:id",
   isAuthenticated,
   isAdmin,
-  verifyConsultant
+  validateRequest(verifyConsultantSchema)
+  // adminController.verifyConsultant
 );
 
-adminRouter.get("/consultants", isAuthenticated, isAdmin, getAllConsultants);
+adminRouter.get(
+  "/consultants",
+  isAuthenticated,
+  isAdmin,
+  adminController.getAllConsultants
+);
 
 export default adminRouter;
