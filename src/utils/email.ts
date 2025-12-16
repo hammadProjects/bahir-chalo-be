@@ -1,8 +1,8 @@
 import nodemailer from "nodemailer";
 
 export const sendEmail = (email: string, subject: string, content: string) => {
-  if (!process.env.APP_EMAIL) throw new Error("APP_EMAIL is Missing");
-  if (!process.env.APP_PASSWORD) throw new Error("APP_PASSWORD is Missing");
+  // if (!process.env.APP_EMAIL) throw new Error("APP_EMAIL is Missing");
+  // if (!process.env.APP_PASSWORD) throw new Error("APP_PASSWORD is Missing");
 
   if (!email || !subject || !content)
     throw new Error("Email, subject and content are required");

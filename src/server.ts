@@ -1,6 +1,7 @@
-import { Request, Response } from "express";
-import app from "./app";
+import express, { Request, Response } from "express";
+
 import { connectDB } from "./config/database";
+const app = express();
 
 // const PORT = process.env.PORT || 3000;
 
@@ -18,3 +19,5 @@ if (!isConnected) {
 app.get("/", (req: Request, res: Response) => {
   res.send("helo world from bahir chalo be");
 });
+
+export default app;

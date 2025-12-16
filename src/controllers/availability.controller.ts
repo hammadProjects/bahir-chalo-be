@@ -26,11 +26,8 @@ export const setAvailability = async (
     startTime = new Date(startTime);
     endTime = new Date(endTime);
 
-    // if (startTime <= Date.now() || endTime <= Date.now())
-    //   throw new CustomError("Availability Time is Invalid", 400);
-
-    // if (isBefore(endTime, startTime))
-    //   throw new CustomError("Availability Time is Invalid", 400);
+    if (isBefore(endTime, startTime) || isEqual(endTime, startTime))
+      throw new CustomError("Availability Time is Invalid", 400);
 
     const prevAvailability = await Availability.findOne({ consultantId: _id });
     if (prevAvailability) {

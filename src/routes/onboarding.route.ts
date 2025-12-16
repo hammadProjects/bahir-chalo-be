@@ -15,13 +15,14 @@ const onboardingRouter = Router();
 onboardingRouter.patch(
   "/student",
   isAuthenticated,
-  validateRequest(studentOnboardingSchema),
+  // validateRequest(studentOnboardingSchema),
   studentOnboarding
 );
+
 onboardingRouter.patch(
   "/consultant",
   isAuthenticated,
-  validateRequest(consultantOnboardingSchema),
+  // validateRequest(consultantOnboardingSchema),
   consultantOnboarding
 );
 

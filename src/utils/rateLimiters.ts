@@ -1,5 +1,5 @@
 import { Request } from "express";
-import { rateLimit } from "express-rate-limit";
+import { ipKeyGenerator, rateLimit } from "express-rate-limit";
 
 export const limiter = (
   message: string,
@@ -9,7 +9,8 @@ export const limiter = (
   rateLimit({
     windowMs,
     limit,
-    keyGenerator: (req: Request) => String(req.user?._id || req.ip),
+    keyGenerator: (req: Request) =>
+      String(req.user?._id || (req.ip && ipKeyGenerator(req?.ip))),
     message: {
       success: false,
       message,

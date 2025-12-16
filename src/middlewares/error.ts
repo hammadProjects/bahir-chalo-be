@@ -1,4 +1,5 @@
 import { NextFunction, Request, Response } from "express";
+import { ZodError } from "zod";
 
 export class CustomError extends Error {
   statusCode: number;
@@ -9,12 +10,13 @@ export class CustomError extends Error {
 }
 
 export const error = (
-  err: CustomError,
+  err: CustomError & ZodError,
   req: Request,
   res: Response,
   next: NextFunction
 ) => {
   const statusCode = err.statusCode || 500;
-  const message = err.message || "Internal Server Error";
+  const message =
+    err?.issues[0]?.message || err.message || "Internal Server Error";
   return res.status(statusCode).json({ success: false, message });
 };

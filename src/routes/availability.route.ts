@@ -1,35 +1,43 @@
 import { Router } from "express";
 import { isAuthenticated, isConsultant } from "../middlewares/auth";
-import {
-  deleteAvailability,
-  getAvailability,
-  getAvailabilityById,
-  getAvailabilityTimeSlots,
-  setAvailability,
-} from "../controllers/availability.controller";
+import * as availabilityController from "../controllers/availability.controller";
+import validateRequest from "../middlewares/validateRequest";
+import { setAvailabilityBodySchema } from "../schemas/availability.schema";
 
 const availabilityRouter = Router();
 
-availabilityRouter.post("/", isAuthenticated, isConsultant, setAvailability);
+// Get all availabilities
+// availabilityRouter.get(
+//   "/",
+//   isAuthenticated,
+//   isConsultant,
+//   availabilityController.getAvailability
+// );
+
+availabilityRouter.post(
+  "/",
+  isAuthenticated,
+  isConsultant,
+  validateRequest({ bodySchema: setAvailabilityBodySchema }),
+  availabilityController.setAvailability
+);
 
 availabilityRouter.get(
-  "/:id/availability",
+  "/:id",
   isAuthenticated,
-  getAvailabilityById
+  availabilityController.getAvailabilityById
 );
 
 availabilityRouter.delete(
-  "/availability/:id",
+  "/:id",
   isAuthenticated,
-  deleteAvailability
+  availabilityController.deleteAvailability
 );
-
-availabilityRouter.get("/", isAuthenticated, isConsultant, getAvailability);
 
 availabilityRouter.get(
   "/:consultantId/slots",
   isAuthenticated,
-  getAvailabilityTimeSlots
+  availabilityController.getAvailabilityTimeSlots
 );
 
 export default availabilityRouter;

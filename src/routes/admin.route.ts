@@ -16,8 +16,8 @@ adminRouter.get(
 adminRouter.patch(
   "/consultant/:id",
   isAuthenticated,
-  isAdmin,
-  validateRequest(verifyConsultantSchema)
+  isAdmin
+  // validateRequest(verifyConsultantSchema)
   // adminController.verifyConsultant
 );
 
