@@ -1,6 +1,7 @@
 import { NextFunction, Request, Response } from "express";
 import * as authSchema from "../schemas/auth.schema";
 import * as authService from "../services/auth.service";
+import { CustomError } from "../middlewares/error";
 
 export const signUp = async (
   req: Request<{}, {}, authSchema.signUpBody>,
@@ -8,12 +9,15 @@ export const signUp = async (
   next: NextFunction
 ) => {
   try {
-    const { email, password, username } = req.body;
-    await authService.signUp({ email, password, username });
+    const result = authSchema.signUpBodySchema.safeParse(req.body);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    await authService.signUp(req.body);
 
     return res.status(201).json({
       success: true,
-      message: `OPT code has been sent to ${email}`,
+      message: `OPT code has been sent to ${req.body?.email}`,
     });
   } catch (error) {
     next(error);

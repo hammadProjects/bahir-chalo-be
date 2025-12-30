@@ -10,7 +10,6 @@ const authRouter = Router();
 authRouter.post(
   "/sign-up",
   limiter("Too many attempts to create an account. Please Try again later."),
-  validateRequest({ bodySchema: authSchema.signUpBodySchema }),
   authController.signUp
 );
 
@@ -26,13 +25,13 @@ authRouter.post("/sign-out", authController.signOut);
 // verify otp
 authRouter.post(
   "/otp/verify",
-  validateRequest({ bodySchema: authSchema.verifyOTPBodySchema }),
+  // validateRequest({ bodySchema: authSchema.verifyOTPBodySchema }),
   authController.verifyOtp
 );
 authRouter.post(
   "/otp/resend",
   limiter("Too many OTP verification attempts. Please try again later."),
-  validateRequest({ bodySchema: authSchema.resendOTPBodySchema }),
+  // validateRequest({ bodySchema: authSchema.resendOTPBodySchema }),
   authController.resendVerifyOtp
 );
 

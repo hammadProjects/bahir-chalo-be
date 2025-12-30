@@ -1,8 +1,7 @@
 import z from "zod";
-import { baseRequestSchema } from "./baseRequestSchema";
 import { countriesList } from "../utils/countriesList";
 
-const studentOnboardingBodySchema = z.object({
+export const studentOnboardingBodySchema = z.object({
   recentDegree: z.string().min(4, "Degree must be atleast 4 characters"),
   grades: z
     .string()
@@ -31,23 +30,14 @@ const studentOnboardingBodySchema = z.object({
   ),
 });
 
-const consultantOnboardingBodySchema = z.object({
+export const consultantOnboardingBodySchema = z.object({
   bio: z.string().min(4, "Bio must be atleast 4 characters"),
-  certificateUrl: z.url(),
+  certificateUrl: z.url("Certificate URL is invalid."),
   experience: z
     .string()
     .transform((exp) => Number(exp))
-    .refine((exp) => !isNaN(exp), "Experience must be numberic"),
-});
-
-export const studentOnboardingSchema = z.object({
-  ...baseRequestSchema,
-  body: studentOnboardingBodySchema,
-});
-
-export const consultantOnboardingSchema = z.object({
-  ...baseRequestSchema,
-  body: consultantOnboardingBodySchema,
+    .refine((exp) => !isNaN(exp), "Experience must be numberic")
+    .refine((exp) => exp <= 0, "At least 1 year experience is required."),
 });
 
 export type studentOnboardingBody = z.infer<typeof studentOnboardingBodySchema>;

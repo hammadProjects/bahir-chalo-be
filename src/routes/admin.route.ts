@@ -1,9 +1,6 @@
 import { Router } from "express";
 import * as adminController from "../controllers/admin.controller";
 import { isAdmin, isAuthenticated } from "../middlewares/auth";
-import validateRequest from "../middlewares/validateRequest";
-import { verifyConsultantSchema } from "../schemas/admin.schema";
-
 const adminRouter = Router();
 
 adminRouter.get(
@@ -13,13 +10,7 @@ adminRouter.get(
   adminController.getPendingConsultants
 );
 
-adminRouter.patch(
-  "/consultant/:id",
-  isAuthenticated,
-  isAdmin
-  // validateRequest(verifyConsultantSchema)
-  // adminController.verifyConsultant
-);
+adminRouter.patch("/consultant/:id", isAuthenticated, isAdmin);
 
 adminRouter.get(
   "/consultants",

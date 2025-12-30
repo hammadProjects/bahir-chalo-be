@@ -1,19 +1,21 @@
 import { Router } from "express";
-import {
-  getConsultantById,
-  getVerifiedConsultants,
-  searchConsultants,
-  validateStatus,
-} from "../controllers/consultant.controller";
+import * as consultantController from "../controllers/consultant.controller";
 import { isAuthenticated } from "../middlewares/auth";
 const consultantRouter = Router();
 
 // Verified Only Consultants for Students
-consultantRouter.get("/", getVerifiedConsultants);
-consultantRouter.get("/search", searchConsultants);
+consultantRouter.get("/", consultantController.getVerifiedConsultants);
 
-consultantRouter.get("/status/validate", isAuthenticated, validateStatus);
+consultantRouter.get(
+  "/status/validate",
+  isAuthenticated,
+  consultantController.validateStatus
+);
 
-consultantRouter.get("/:id", isAuthenticated, getConsultantById);
+consultantRouter.get(
+  "/:id",
+  isAuthenticated,
+  consultantController.getConsultantById
+);
 
 export default consultantRouter;

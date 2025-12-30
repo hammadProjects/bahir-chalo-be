@@ -11,7 +11,7 @@ const studentRouter = Router();
 
 // GEMINI
 studentRouter.post(
-  "/roadmap/generate/:country",
+  "/roadmaps/generate/:country",
   isAuthenticated,
   limiter(
     "Roadmap generation limit reached for today.",
@@ -21,7 +21,7 @@ studentRouter.post(
   generateRoadmap
 );
 // get all previous roadmaps
-studentRouter.get("/roadmap", isAuthenticated, getAllRoadmaps);
-studentRouter.get("/roadmap/:roadmapId", isAuthenticated, getRoadmapById);
+studentRouter.get("/roadmaps", isAuthenticated, getAllRoadmaps);
+studentRouter.get("/roadmaps/:roadmapId", isAuthenticated, getRoadmapById);
 
 export default studentRouter;

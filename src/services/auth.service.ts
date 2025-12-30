@@ -13,6 +13,7 @@ export const sendOtpToUser = async (
 ) => {
   let subject: string;
   let body: string;
+  let code, expiry;
 
   if (reason === "verify") {
     const otpCode = getOtpCode();
@@ -45,9 +46,24 @@ export const signUp = async ({
   if (findUser)
     throw new CustomError("User with this email already exisits", 400);
 
+  const otpCode = getOtpCode();
+  const otpExpiry = new Date(new Date().getMinutes() + 5);
+
   const hashedPassword = await bcrypt.hash(password, 10);
-  const user = await User.create({ username, email, password: hashedPassword });
-  await sendOtpToUser(user, "verify");
+  const user = await User.create({
+    username,
+    email,
+    password: hashedPassword,
+    otpCode,
+    otpExpiry,
+  });
+
+  sendEmail(
+    email,
+    "Bahir Chalo OTP Verification Code",
+    `Your OTP code is ${otpCode}`
+  );
+  await user.save();
 };
 
 export const signIn = async ({ email, password }: authSchema.signInBody) => {

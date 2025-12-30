@@ -5,13 +5,19 @@ import Availability from "../models/availability.model";
 import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
-import { SAFE_USER_SELECT } from "../utils/utils";
-import { isAfter, isBefore } from "date-fns";
-import { v4 as uuidv4 } from "uuid";
+import { isBefore } from "date-fns";
 import {
   addParticipantsInMeeting,
   createRealtimeMeeting,
 } from "../utils/realtimeCloudflareAPI";
+import {
+  createBookingBody,
+  createBookingBodySchema,
+  createBookingParams,
+  createBookingParamsSchema,
+  getMyBookingsQuerySchema,
+} from "../schemas/booking.schema";
+import * as bookingService from "../services/booking.service";
 
 export const getMyBookings = async (
   req: Request,
@@ -19,41 +25,12 @@ export const getMyBookings = async (
   next: NextFunction
 ) => {
   try {
-    const { role, _id } = req.user!;
-    let { page, limit } = req.query;
-    let pageNum, maxLimit;
+    const result = getMyBookingsQuerySchema.safeParse(req.query);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
 
-    if (typeof page === "string" && typeof limit === "string") {
-      pageNum = +page;
-      maxLimit = +limit;
-    }
-
-    if (
-      !pageNum ||
-      !maxLimit ||
-      typeof pageNum != "number" ||
-      typeof maxLimit != "number"
-    )
-      throw new CustomError("page and limit are required", 400);
-    const skip = (pageNum - 1) * maxLimit;
-
-    if (role !== "consultant" && role !== "student")
-      throw new CustomError("You are not authenticated to View Bookings", 401);
-
-    const filter =
-      role === "student" ? { studentId: _id } : { consultantId: _id };
-
-    const bookings = await Booking.find(filter)
-      .skip(skip)
-      .limit(maxLimit)
-      .sort({ createdAt: -1 })
-      .populate([
-        { path: "studentId", select: SAFE_USER_SELECT },
-        { path: "consultantId", select: SAFE_USER_SELECT },
-        { path: "availabilityId", select: "startTime endTime" },
-      ]);
-
-    const totalBookings = await Booking.countDocuments(filter);
+    const { bookings, totalBookings, page, limit } =
+      await bookingService.getMyBookings(req.user!, result.data);
 
     return res.status(200).json({
       success: true,
@@ -61,10 +38,10 @@ export const getMyBookings = async (
       pagination: {
         bookings,
         totalBookings,
-        totalPages: Math.ceil(totalBookings / maxLimit),
-        hasPrev: pageNum > 1,
-        hasNext: pageNum < Math.ceil(totalBookings / maxLimit),
-        currentPage: pageNum,
+        totalPages: Math.ceil(totalBookings / limit),
+        hasPrev: page > 1,
+        hasNext: page < Math.ceil(totalBookings / limit),
+        currentPage: page,
       },
     });
   } catch (error) {
@@ -73,33 +50,30 @@ export const getMyBookings = async (
 };
 
 export const createBooking = async (
-  req: Request,
+  req: Request<createBookingParams, {}, createBookingBody>,
   res: Response,
   next: NextFunction
 ) => {
   const session = await startSession();
   try {
     session.startTransaction();
-    const { availabilityId } = req.params;
-    let {
-      notes,
-      startTime,
-      endTime,
-    }: { notes: string; startTime: Date; endTime: Date } = req.body;
-    startTime = new Date(startTime);
-    endTime = new Date(endTime);
+    const avlResult = createBookingParamsSchema.safeParse(req.params);
+    const result = createBookingBodySchema.safeParse(req.body);
+
+    if (!result.success)
+      throw new CustomError(String(result.error.message), 400);
+
+    if (!avlResult.success)
+      throw new CustomError(String(avlResult?.error.message), 400);
+
+    const { id: availabilityId } = avlResult.data;
+    const { startTime, endTime, notes } = result.data;
 
     const availability = await Availability.findById(availabilityId);
     const loggedInUser = req.user!;
 
     if (loggedInUser.role !== "student")
       throw new CustomError("Only Student can book appointments", 401);
-
-    if (!startTime || !endTime)
-      throw new CustomError("Start time and end time are required", 400);
-
-    if (isBefore(endTime, startTime))
-      throw new CustomError("Start time must be before End time", 400);
 
     // if availability does not exists or already booked or already expired
     if (!availability)
@@ -119,28 +93,6 @@ export const createBooking = async (
 
     if (booking?.status === "scheduled")
       throw new CustomError("Appointment is Already Booked in this slot", 400);
-
-    // (todo) - see if in between availability
-    const startOfAvailability =
-      +`${availability?.startTime?.getHours()}${availability?.startTime?.getMinutes()}`;
-    const endOfAvailability =
-      +`${availability?.endTime?.getHours()}${availability?.endTime?.getMinutes()}`;
-
-    const startOfAppointment =
-      +`${startTime?.getHours()}${startTime?.getMinutes()}`;
-    const endOfAppointment = +`${endTime?.getHours()}${endTime?.getMinutes()}`;
-
-    // (todo) - make this condition work
-    // if (
-    //   startOfAppointment >= endOfAvailability ||
-    //   startOfAppointment < startOfAvailability ||
-    //   endOfAppointment <= startOfAvailability ||
-    //   endOfAppointment > endOfAvailability
-    // )
-    //   throw new CustomError(
-    //     "Start and end time must be in range of Availability",
-    //     400
-    //   );
 
     if (startTime < new Date(Date.now()))
       throw new CustomError("Availability is Expired", 400);

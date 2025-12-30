@@ -14,6 +14,10 @@ const schema = new Schema(
       minLength: [6, "Title must be 6 characters long"],
       trim: true,
     },
+    country: {
+      type: String,
+      required: [true, "Roadmap country is required"],
+    },
     roadmapData: {
       type: Object,
       required: [true, "Roadmap data is required"],

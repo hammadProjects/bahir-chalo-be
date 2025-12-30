@@ -15,7 +15,7 @@ const bookingRouter = Router();
 bookingRouter.get("/mine", isAuthenticated, getMyBookings);
 
 // Find Availability then create Booking
-bookingRouter.post("/:availabilityId", isAuthenticated, createBooking);
+bookingRouter.post("/:id", isAuthenticated, createBooking);
 
 // Booking already created
 bookingRouter.delete("/:bookingId", isAuthenticated, cancelBooking);

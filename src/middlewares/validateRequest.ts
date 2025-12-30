@@ -13,15 +13,15 @@ const validateRequest = <T extends ZodObject>({
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       if (bodySchema) {
-        bodySchema.parse(req.body);
+        bodySchema.safeParse(req.body);
       }
 
       if (paramsSchema) {
-        paramsSchema.parse(req.body);
+        paramsSchema.safeParse(req.body);
       }
 
       if (querySchema) {
-        querySchema.parse(req.body);
+        querySchema.safeParse(req.body);
       }
       next();
     } catch (error) {

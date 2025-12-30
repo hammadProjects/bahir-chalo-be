@@ -1,44 +1,24 @@
 import { NextFunction, Request, Response } from "express";
+import * as studentService from "../services/student.service";
+import * as studentSchema from "../schemas/student.schema";
 import { CustomError } from "../middlewares/error";
 
-import { GoogleGenerativeAI } from "@google/generative-ai";
-import { generatePrompt } from "../utils/utils";
-import Roadmap from "../models/roadmap.model";
-const genAI = new GoogleGenerativeAI(process.env?.GEMINI_API_KEY!);
-
 export const generateRoadmap = async (
-  req: Request,
+  req: Request<studentSchema.generateRoadmapParams, {}, {}>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const loggedInUser = req.user!;
-    const { country } = req.params;
-
-    if (loggedInUser?.role != "student")
-      throw new CustomError("Only Students can generate Roadmaps", 401);
-
-    if (!country) throw new CustomError("Country Is Required", 400);
-
-    const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
-
-    const result = await model.generateContent(
-      generatePrompt(country, loggedInUser)
+    const result = studentSchema.generateRoadmapParamsSchema.safeParse(
+      req.params
     );
-    const text = result.response.text();
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
 
-    const jsonStart = text.indexOf("{");
-    const jsonEnd = text.lastIndexOf("}") + 1;
-    const cleanText = text.slice(jsonStart, jsonEnd);
-
-    const studyRoadmap = JSON.parse(cleanText)?.studyRoadmap || [];
-
-    // store roadmap in DB
-    await Roadmap.create({
-      title: `Study Roadmap - ${country}`,
-      studentId: loggedInUser?._id,
-      roadmapData: studyRoadmap,
-    });
+    const { studyRoadmap, country } = await studentService.generateRoadmap(
+      req.user!,
+      result.data
+    );
 
     res.status(200).json({
       success: true,
@@ -51,25 +31,28 @@ export const generateRoadmap = async (
 };
 
 export const getAllRoadmaps = async (
-  req: Request,
+  req: Request<{}, studentSchema.getAllRoadmapsQuery, {}>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const loggedInUser = req.user!;
-    if (loggedInUser?.role != "student")
-      throw new CustomError("You are not authenticated", 401);
+    const result = studentSchema.getAllRoadmapsQuerySchema.safeParse(req.query);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
 
-    const roadmaps = await Roadmap.find({
-      studentId: loggedInUser?._id,
-    })
-      .select("-roadmapData")
-      .sort({ createdAt: -1 }); // most recent will come at front
+    const { roadmaps, totalRoadmaps, limit, page } =
+      await studentService.getAllRoadmaps(req.user!, result.data);
 
     res.status(200).json({
       success: true,
       message: "Roadmaps fetched successfully",
-      data: { roadmaps },
+      data: {
+        pagination: roadmaps,
+        totalPages: Math.ceil(totalRoadmaps / limit),
+        hasNext: page < Math.ceil(totalRoadmaps / limit),
+        hasPrev: page > 1,
+        currentPage: page,
+      },
     });
   } catch (error) {
     next(error);
@@ -77,19 +60,22 @@ export const getAllRoadmaps = async (
 };
 
 export const getRoadmapById = async (
-  req: Request,
+  req: Request<studentSchema.getRoadmapByIdParams, {}, {}>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const loggedInUser = req.user!;
-    const { roadmapId } = req.params;
+    const result = studentSchema.getRoadmapByIdParamsSchema.safeParse(
+      req.params
+    );
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
 
-    if (loggedInUser?.role != "student")
-      throw new CustomError("You can not access the roadmap", 401);
+    const { roadmap } = await studentService.getRoadmapById(
+      req.user!,
+      result?.data
+    );
 
-    const roadmap = await Roadmap.findById(roadmapId);
-    if (!roadmap) throw new CustomError("Roadmap does not exists", 404);
     res.status(200).json({
       success: true,
       message: "Roadmap fetched successfully",

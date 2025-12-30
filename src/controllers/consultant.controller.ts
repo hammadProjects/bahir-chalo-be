@@ -2,65 +2,39 @@ import { NextFunction, Request, Response } from "express";
 import User from "../models/user.model";
 import { CustomError } from "../middlewares/error";
 import { SAFE_USER_SELECT } from "../utils/utils";
+import {
+  getVerifiedConsultantQuerySchema,
+  getConsultantByIdParams,
+  getConsultantByIdParamsSchema,
+  getVerifiedConsultantIdQuery,
+} from "../models/consultant.schema";
+import * as consultatService from "../services/consultant.service";
 
 export const getVerifiedConsultants = async (
-  req: Request,
+  req: Request<{}, getVerifiedConsultantIdQuery, {}>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const consultants = await User.find({
-      role: "consultant",
-      "consultantProfile.status": "approved",
-    })
-      .select(SAFE_USER_SELECT)
-      .lean();
+    let result = getVerifiedConsultantQuerySchema.safeParse(req.query);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
 
-    // (todo) - get by pagination
+    const { consultants, totalConsultants, page, limit } =
+      await consultatService.getVerifiedConsultants(result?.data);
+
     res.status(200).json({
       success: true,
       message: "Consultants Fetched Successfuly",
-      data: { consultants },
-    });
-  } catch (error) {
-    next(error);
-  }
-};
-
-export const searchConsultants = async (
-  req: Request,
-  res: Response,
-  next: NextFunction
-) => {
-  try {
-    const search = (req.query?.search as string).trim();
-
-    if (!search) {
-      const consultants = await User.find({
-        role: "consultant",
-        "consultantProfile.status": "approved",
-      });
-
-      res.status(200).json({
-        success: true,
-        message: "consultants fetched successfully",
-        data: { consultants },
-      });
-    }
-
-    const consultants = await User.find({
-      role: "consultant",
-      "consultantProfile.status": "approved",
-      $or: [
-        { username: { $regex: search, $options: "i" } },
-        { "consultantProfile.bio": { $regex: search, $options: "i" } },
-      ],
-    });
-
-    res.status(200).json({
-      success: true,
-      message: "consultants fetched successfully",
-      data: { consultants },
+      data: {
+        pagination: {
+          consultants,
+          totalConsultants,
+          hasNext: page < Math.ceil(totalConsultants / limit),
+          hasPrev: page > 1,
+          currentPage: page,
+        },
+      },
     });
   } catch (error) {
     next(error);
@@ -89,13 +63,18 @@ export const validateStatus = (
 };
 
 export const getConsultantById = async (
-  req: Request,
+  req: Request<getConsultantByIdParams, {}, {}>,
   res: Response,
   next: NextFunction
 ) => {
   try {
-    const { id } = req.params;
-    const data = await User.findById(id).select(SAFE_USER_SELECT);
+    const result = getConsultantByIdParamsSchema.safeParse(req.params);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    const { id: consultantId } = result.data;
+
+    const data = await User.findById(consultantId).select(SAFE_USER_SELECT);
     if (!data) new CustomError("Invalid Id. Consultant does not exist", 404);
 
     return res.status(200).json({
@@ -109,40 +88,3 @@ export const getConsultantById = async (
     next(error);
   }
 };
-
-// export const createDailyAvailabilities = async (
-//   req: Request,
-//   res: Response,
-//   next: NextFunction
-// ) => {
-//   try {
-//     const loggedInUser = req.user!;
-//     if (loggedInUser.role != "consultant")
-//       new CustomError("You are Not Authenticated", 401);
-
-//     const { timings, gapTime } = req.body;
-//     const APPOINTMENT_TIME = 50; // means 50% of hour - 30 minutes
-//     /*
-//       timings: [
-//         monday: {startTime: 9, endTime: 11},
-//         tuesday: {startTime: 9, endTime: 11},
-//         wednesday: {startTime: 9, endTime: 11},
-//         thursday: {startTime: 9, endTime: 11},
-//         friday: null, // no free availability
-//         saturday: null, // no free availability
-//         sunday: null // no free availability
-//       ]
-//     */
-//     timings.map(
-//       (day: { startTime: number; endTime: number } | null, index: number) => {
-//         if (day != null) {
-//           console.log(
-//             "create appointments for each monday but not right now we can create them as the day approaches"
-//           );
-//         }
-//       }
-//     );
-//   } catch (error) {
-//     next(error);
-//   }
-// };
