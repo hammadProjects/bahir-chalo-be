@@ -1,6 +1,5 @@
 import { Router } from "express";
 import * as authController from "../controllers/auth.controller";
-import * as authSchema from "../schemas/auth.schema";
 import { isAuthenticated } from "../middlewares/auth";
 import validateRequest from "../middlewares/validateRequest";
 import { limiter } from "../utils/rateLimiters";
@@ -15,23 +14,17 @@ authRouter.post(
 
 authRouter.post(
   "/sign-in",
-  limiter("Too many attempts to login. Please try again later."),
-  validateRequest({ bodySchema: authSchema.signInBodySchema }),
+  // limiter("Too many attempts to login. Please try again later."),
   authController.signIn
 );
 
 authRouter.post("/sign-out", authController.signOut);
 
 // verify otp
-authRouter.post(
-  "/otp/verify",
-  // validateRequest({ bodySchema: authSchema.verifyOTPBodySchema }),
-  authController.verifyOtp
-);
+authRouter.post("/otp/verify", authController.verifyOtp);
 authRouter.post(
   "/otp/resend",
   limiter("Too many OTP verification attempts. Please try again later."),
-  // validateRequest({ bodySchema: authSchema.resendOTPBodySchema }),
   authController.resendVerifyOtp
 );
 
@@ -39,17 +32,9 @@ authRouter.post(
 authRouter.post(
   "/password/forgot",
   limiter("Too many forgot password attempts. Please try again later."),
-  validateRequest({ bodySchema: authSchema.forgetPasswordBodySchema }),
   authController.forgotPassword
 );
-authRouter.post(
-  "/password/reset/:token",
-  validateRequest({
-    bodySchema: authSchema.resetPasswordParamsSchema,
-    paramsSchema: authSchema.resetPasswordParamsSchema,
-  }),
-  authController.resetPassword
-);
+authRouter.post("/password/reset/:token", authController.resetPassword);
 
 // validate token
 authRouter.put(

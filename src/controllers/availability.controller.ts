@@ -123,8 +123,8 @@ export const getAvailabilityTimeSlots = async (
   next: NextFunction
 ) => {
   try {
-    const loggedInUser = req.user!;
     const { consultantId } = req.params;
+    console.log();
     const bookings = await Booking.find({
       consultantId,
       status: "scheduled",
@@ -200,7 +200,7 @@ export const getAvailabilityTimeSlots = async (
         AvailableSlots[key].push({
           startTime: current,
           endTime: addMinutes(current, 30),
-          consultantId: `${loggedInUser._id}`,
+          consultantId: `${consultantId}`,
           availabilityId: `${availability._id}`,
         });
 

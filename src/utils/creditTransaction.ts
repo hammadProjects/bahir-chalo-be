@@ -6,12 +6,12 @@ import Transaction from "../models/transaction.model";
 export const creditTransaction = async ({
   studentId,
   consultantId,
-  session,
-}: {
+}: // session,
+{
   studentId: Schema.Types.ObjectId;
   consultantId: mongoose.Types.ObjectId;
   // consultantId: string;
-  session: ClientSession;
+  // session: ClientSession;
 }) => {
   await User.findByIdAndUpdate(
     studentId,

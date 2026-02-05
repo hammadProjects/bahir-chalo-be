@@ -11,7 +11,8 @@ export const isAuthenticated = async (
   next: NextFunction
 ) => {
   try {
-    const token = req.headers.authorization?.split(" ")[1];
+    const token =
+      req.cookies?.token || req.headers.authorization?.split(" ")[1];
     if (!token) throw new CustomError("Invalid token", 401);
 
     const JWT_SECRET_KEY = process.env.JWT_SECRET_KEY;

@@ -6,13 +6,12 @@ import { setAvailabilityBodySchema } from "../schemas/availability.schema";
 
 const availabilityRouter = Router();
 
-// Get all availabilities
-// availabilityRouter.get(
-//   "/",
-//   isAuthenticated,
-//   isConsultant,
-//   availabilityController.getAvailability
-// );
+availabilityRouter.get(
+  "/",
+  isAuthenticated,
+  isConsultant,
+  availabilityController.getAvailability
+);
 
 availabilityRouter.post(
   "/",
@@ -22,21 +21,21 @@ availabilityRouter.post(
   availabilityController.setAvailability
 );
 
-availabilityRouter.get(
-  "/:id",
-  isAuthenticated,
-  availabilityController.getAvailabilityById
-);
+// availabilityRouter.get(
+//   "/:id",
+//   isAuthenticated,
+//   availabilityController.getAvailabilityById
+// );
 
-availabilityRouter.delete(
-  "/:id",
-  isAuthenticated,
-  availabilityController.deleteAvailability
-);
+// availabilityRouter.delete(
+//   "/:id",
+//   isAuthenticated,
+//   availabilityController.deleteAvailability
+// );
 
 availabilityRouter.get(
   "/:consultantId/slots",
-  isAuthenticated,
+  // isAuthenticated,
   availabilityController.getAvailabilityTimeSlots
 );
 

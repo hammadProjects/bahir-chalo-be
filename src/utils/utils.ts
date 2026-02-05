@@ -6,6 +6,11 @@ export const getOtpCode = () =>
 export const SAFE_USER_SELECT =
   "-password -otpCode -otpExpiry -passwordResetId -passwordResetExpiry";
 
+export const CloudflarePresetNames = {
+  student: "participant",
+  consultant: "host",
+};
+
 export const PLANS = {
   basic: {
     credits: 2,

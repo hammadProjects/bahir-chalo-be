@@ -17,6 +17,6 @@ export const error = (
 ) => {
   const statusCode = err.statusCode || 500;
   const message =
-    err?.issues[0]?.message || err.message || "Internal Server Error";
+    err.message || err?.issues[0]?.message || "Internal Server Error";
   return res.status(statusCode).json({ success: false, message });
 };

@@ -12,9 +12,9 @@ const strongPassword = z
 export const signUpBodySchema = z.object({
   username: z
     .string()
-    .min(8, "Username must be atleast 4 characters")
+    .min(2, "Username must be atleast 4 characters")
     .transform(
-      (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase()
+      (name) => name.charAt(0).toUpperCase() + name.slice(1).toLowerCase(),
     ),
   password: strongPassword,
   email: z.email(),

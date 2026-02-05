@@ -5,7 +5,7 @@ import Availability from "../models/availability.model";
 import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
-import { isBefore } from "date-fns";
+import { isAfter, isBefore, isEqual } from "date-fns";
 import {
   addParticipantsInMeeting,
   createRealtimeMeeting,
@@ -18,6 +18,8 @@ import {
   getMyBookingsQuerySchema,
 } from "../schemas/booking.schema";
 import * as bookingService from "../services/booking.service";
+import { v4 as uuidv4 } from "uuid";
+import { CloudflarePresetNames } from "../utils/utils";
 
 export const getMyBookings = async (
   req: Request,
@@ -54,9 +56,9 @@ export const createBooking = async (
   res: Response,
   next: NextFunction
 ) => {
-  const session = await startSession();
+  // const session = await startSession();
   try {
-    session.startTransaction();
+    // session.startTransaction();
     const avlResult = createBookingParamsSchema.safeParse(req.params);
     const result = createBookingBodySchema.safeParse(req.body);
 
@@ -123,18 +125,17 @@ export const createBooking = async (
     await creditTransaction({
       studentId: loggedInUser._id as Schema.Types.ObjectId,
       consultantId,
-      session,
+      // session,
     });
 
     let MeetingResponse;
 
     try {
       MeetingResponse = await createRealtimeMeeting(
-        `${loggedInUser?.username} - ${consultant?.username}`
+        `${consultant?.username} - ${loggedInUser?.username}`.toUpperCase()
       );
-      console.log(MeetingResponse.data);
     } catch (error) {
-      await session.abortTransaction();
+      // await session.abortTransaction();
       console.log(error);
       throw new CustomError("Meeting creation failed", 500);
     }
@@ -153,7 +154,7 @@ export const createBooking = async (
       // { session }
     );
 
-    await session.commitTransaction(); // commit the transaction before sending the response
+    // await session.commitTransaction(); // commit the transaction before sending the response
 
     // refetch for updated document
     const updatedUser = await User.findById(loggedInUser._id);
@@ -170,7 +171,7 @@ export const createBooking = async (
   } catch (error) {
     next(error);
   } finally {
-    session.endSession();
+    // session.endSession();
   }
 };
 
@@ -270,7 +271,8 @@ export const joinAppointment = async (
     if (
       ![`${booking.consultantId}`, `${booking.studentId}`].includes(
         `${loggedInUser?._id}`
-      )
+      ) ||
+      (loggedInUser?.role != "student" && loggedInUser?.role != "consultant")
     )
       throw new CustomError("you are not allowed to join the call", 401);
 
@@ -291,11 +293,7 @@ export const joinAppointment = async (
     //   );
 
     const preset_name =
-      loggedInUser?.role === "student"
-        ? "participant"
-        : loggedInUser?.role === "consultant"
-        ? "host"
-        : "";
+      CloudflarePresetNames[loggedInUser?.role as "student" | "consultant"];
 
     const AddParticipantResponse = await addParticipantsInMeeting(
       booking?.meetingId,
@@ -322,11 +320,26 @@ export const completeBooking = async (
   next: NextFunction
 ) => {
   try {
+    const loggedInUser = req.user;
     const { bookingId } = req.params;
     const booking = await Booking.findById(bookingId);
     if (!booking) throw new CustomError("Booking does not exists", 404);
+    if (booking.status != "scheduled")
+      throw new CustomError(
+        `Appointment cannot be completed as it is already ${booking.status}`,
+        403
+      );
 
-    if (isBefore(booking.endTime, new Date()))
+    if (`${booking.consultantId}` != `${loggedInUser?._id}`)
+      throw new CustomError(
+        "Only related consultant can complete an appointment",
+        403
+      );
+
+    if (
+      isAfter(booking.endTime, new Date()) ||
+      isEqual(booking.endTime, new Date())
+    )
       throw new CustomError(
         "You can only complete appointment after it has been completed",
         400

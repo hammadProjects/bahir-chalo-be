@@ -33,6 +33,7 @@ export const getVerifiedConsultants = async (
           hasNext: page < Math.ceil(totalConsultants / limit),
           hasPrev: page > 1,
           currentPage: page,
+          totalPages: Math.ceil(totalConsultants / limit),
         },
       },
     });

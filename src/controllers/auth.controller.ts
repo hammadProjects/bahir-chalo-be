@@ -6,7 +6,7 @@ import { CustomError } from "../middlewares/error";
 export const signUp = async (
   req: Request<{}, {}, authSchema.signUpBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const result = authSchema.signUpBodySchema.safeParse(req.body);
@@ -27,15 +27,22 @@ export const signUp = async (
 export const signIn = async (
   req: Request<{}, {}, authSchema.signInBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const { email, password } = req.body;
+    const result = authSchema.signInBodySchema.safeParse(req.body);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    const { email, password } = result.data;
     const { token, user } = await authService.signIn({ email, password });
+    console.log(token);
 
     res
       .cookie("token", token, {
-        sameSite: true,
+        sameSite: "none",
+        // secure: process.env?.NODE_ENV == "prod",
+        // secure: true,
         httpOnly: true,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       }) // 7 days
@@ -53,10 +60,14 @@ export const signIn = async (
 export const verifyOtp = async (
   req: Request<{}, {}, authSchema.verifyOTPBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const { otpCode, email } = req.body;
+    const result = authSchema.verifyOTPBodySchema.safeParse(req.body);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    const { otpCode, email } = result.data;
     const { token, user } = await authService.verifyOtp({ otpCode, email });
 
     res
@@ -79,10 +90,14 @@ export const verifyOtp = async (
 export const resendVerifyOtp = async (
   req: Request<{}, {}, authSchema.resendVerifyOTPBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const { email } = req.body;
+    const result = authSchema.resendOTPBodySchema.safeParse(req.body);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    const { email } = result.data;
     const { user } = await authService.resendVerifyOtp({ email });
 
     return res.status(201).json({
@@ -97,10 +112,14 @@ export const resendVerifyOtp = async (
 export const forgotPassword = async (
   req: Request<{}, {}, authSchema.forgetPasswordBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const { email } = req.body;
+    const result = authSchema.forgetPasswordBodySchema.safeParse(req.body);
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    const { email } = result.data;
     await authService.forgotPassword({ email });
 
     res.status(200).json({
@@ -119,11 +138,22 @@ export const resetPassword = async (
     authSchema.resetPasswordBody
   >,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
-    const { email, password } = req.body;
-    const { token } = req.params; // uuid from reset sent link
+    const result = authSchema.signInBodySchema.safeParse(req.body); // same schema as sign in
+    if (!result.success)
+      throw new CustomError(String(result.error?.message), 400);
+
+    const paramsResult = authSchema.resetPasswordParamsSchema.safeParse(
+      req.params,
+    );
+
+    if (!paramsResult.success)
+      throw new CustomError(String(paramsResult.error?.message), 400);
+
+    const { email, password } = result.data;
+    const { token } = paramsResult.data; // uuid from reset sent link
     await authService.resetPassword({ email, password, token });
 
     res.status(200).json({
