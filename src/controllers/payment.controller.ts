@@ -3,12 +3,12 @@ import { CustomError } from "../middlewares/error";
 import { PLANS } from "../utils/utils";
 import { PlanType } from "../utils/types";
 import Transaction from "../models/transaction.model";
-import stripe from "../config/stripeConfig";
+import { createStripeConfig } from "../config/stripeConfig";
 
 export const createCheclout = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const loggedInUser = req.user;
@@ -19,7 +19,7 @@ export const createCheclout = async (
 
     // if payment from student is successful then put the credits into student account
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await createStripeConfig()?.checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: [
@@ -46,7 +46,7 @@ export const createCheclout = async (
 export const buyCredits = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const loggedInUser = req.user!;
@@ -59,7 +59,7 @@ export const buyCredits = async (
 
     // if payment from student is successful then put the credits into student account
 
-    const session = await stripe.checkout.sessions.create({
+    const session = await createStripeConfig().checkout.sessions.create({
       mode: "payment",
       payment_method_types: ["card"],
       line_items: [
@@ -97,7 +97,7 @@ export const buyCredits = async (
 export const payoutCredits = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const loggedInUser = req.user!;
@@ -109,7 +109,7 @@ export const payoutCredits = async (
     if (creditsToCheckout <= 0)
       throw new CustomError(
         "At least 1 credit is required for transaction",
-        400
+        400,
       );
 
     if (loggedInUser?.credits < creditsToCheckout)
