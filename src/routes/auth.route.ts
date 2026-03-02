@@ -1,21 +1,28 @@
 import { Router } from "express";
 import * as authController from "../controllers/auth.controller";
 import { isAuthenticated } from "../middlewares/auth";
-import validateRequest from "../middlewares/validateRequest";
 import { limiter } from "../utils/rateLimiters";
+import { upload } from "./upload.route";
+import { uploadSingleFile } from "../controllers/upload.controller";
+import { validate } from "../middlewares/validateRequest";
+import { signInBodySchema, signUpBodySchema } from "../schemas/auth.schema";
 
 const authRouter = Router();
 
 authRouter.post(
   "/sign-up",
-  limiter("Too many attempts to create an account. Please Try again later."),
-  authController.signUp
+  // limiter("Too many attempts to create an account. Please Try again later."),
+  upload.single("file"),
+  validate({ bodySchema: signUpBodySchema }),
+  uploadSingleFile,
+  authController.signUp,
 );
 
 authRouter.post(
   "/sign-in",
   // limiter("Too many attempts to login. Please try again later."),
-  authController.signIn
+  validate({ bodySchema: signInBodySchema }),
+  authController.signIn,
 );
 
 authRouter.post("/sign-out", authController.signOut);
@@ -25,14 +32,14 @@ authRouter.post("/otp/verify", authController.verifyOtp);
 authRouter.post(
   "/otp/resend",
   limiter("Too many OTP verification attempts. Please try again later."),
-  authController.resendVerifyOtp
+  authController.resendVerifyOtp,
 );
 
 // reset password
 authRouter.post(
   "/password/forgot",
   limiter("Too many forgot password attempts. Please try again later."),
-  authController.forgotPassword
+  authController.forgotPassword,
 );
 authRouter.post("/password/reset/:token", authController.resetPassword);
 
@@ -40,7 +47,7 @@ authRouter.post("/password/reset/:token", authController.resetPassword);
 authRouter.put(
   "/token/validate",
   isAuthenticated,
-  authController.validateToken
+  authController.validateToken,
 );
 
 export default authRouter;

@@ -13,7 +13,7 @@ export const error = (
   err: CustomError & ZodError,
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   const statusCode = err.statusCode || 500;
   const message =

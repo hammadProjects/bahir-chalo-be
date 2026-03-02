@@ -1,4 +1,4 @@
-import { Document } from "mongoose";
+import { Document, Schema } from "mongoose";
 
 // we extended from Document - to make the methods available like .save()
 export interface UserDocument extends Document {
@@ -30,6 +30,20 @@ export interface UserDocument extends Document {
   getJwt: () => string;
 }
 
+export interface TransactionDocument {
+  userId: Schema.Types.ObjectId;
+  type:
+    | "CREDIT_PURCHASE"
+    | "APPOINTMENT_DEDUCTION"
+    | "APPOINTMENT_EARNING"
+    | "PAYOUT_REQUEST";
+  credits: number;
+  status: "pending" | "completed" | "failed";
+  stripeSessionId: string;
+  stripePaymentIntentId: string;
+  planType: "basic" | "standard" | "premium";
+}
+
 export interface SignUpData {
   username: string;
   email: string;
@@ -46,4 +60,5 @@ export type PlanType = "basic" | "standard" | "premium";
 export type TransactionType =
   | "CREDIT_PURCHASE"
   | "APPOINTMENT_DEDUCTION"
-  | "APPOINTMENT_EARNING";
+  | "APPOINTMENT_EARNING"
+  | "PAYOUT_REQUEST";

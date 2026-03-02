@@ -7,7 +7,7 @@ import { generatePrompt } from "../utils/utils";
 
 export const generateRoadmap = async (
   user: UserDocument,
-  { country }: studentSchema.generateRoadmapParams
+  { country }: studentSchema.generateRoadmapParams,
 ) => {
   const genAI = new GoogleGenerativeAI(process.env?.GEMINI_API_KEY!);
   const findPrevRoadmap = await Roadmap.findOne({
@@ -46,7 +46,7 @@ export const generateRoadmap = async (
 
 export const getRoadmapById = async (
   user: UserDocument,
-  { roadmapId }: studentSchema.getRoadmapByIdParams
+  { roadmapId }: studentSchema.getRoadmapByIdParams,
 ) => {
   if (user?.role != "student")
     throw new CustomError("You can not access the roadmap", 401);
@@ -58,7 +58,7 @@ export const getRoadmapById = async (
 
 export const getAllRoadmaps = async (
   user: UserDocument,
-  { page, limit, search }: studentSchema.getAllRoadmapsQuery
+  { page, limit, search }: studentSchema.getAllRoadmapsQuery,
 ) => {
   if (user?.role != "student")
     throw new CustomError("You are not authenticated", 401);
@@ -68,8 +68,8 @@ export const getAllRoadmaps = async (
   const roadmaps = await Roadmap.find({
     studentId: user?._id,
     $or: [
-      { title: { $regex: search, $option: "i" } },
-      { country: { $regex: search, $option: "i" } },
+      { title: { $regex: search, $options: "i" } },
+      { country: { $regex: search, $options: "i" } },
     ],
   })
     .select("-roadmapData")
@@ -80,8 +80,8 @@ export const getAllRoadmaps = async (
   const totalRoadmaps = await Roadmap.countDocuments({
     studentId: user?._id,
     $or: [
-      { title: { $regex: search, $option: "i" } },
-      { country: { $regex: search, $option: "i" } },
+      { title: { $regex: search, $options: "i" } },
+      { country: { $regex: search, $options: "i" } },
     ],
   });
 

@@ -6,40 +6,45 @@ import Transaction from "../models/transaction.model";
 export const creditTransaction = async ({
   studentId,
   consultantId,
-}: // session,
+  session,
+}: //
 {
   studentId: Schema.Types.ObjectId;
   consultantId: mongoose.Types.ObjectId;
   // consultantId: string;
-  // session: ClientSession;
+  session: ClientSession;
 }) => {
   await User.findByIdAndUpdate(
     studentId,
-    { $inc: { credits: -2 } }
-    // { session }
+    { $inc: { credits: -2 } },
+    { session },
   );
 
   await Transaction.create(
-    {
-      userId: studentId,
-      credits: 2,
-      type: "APPOINTMENT_DEDUCTION",
-    }
-    // { session }
+    [
+      {
+        userId: studentId,
+        credits: 2,
+        type: "APPOINTMENT_DEDUCTION",
+      },
+    ],
+    { session },
   );
 
   await User.findByIdAndUpdate(
     consultantId,
-    { $inc: { credits: 2 } }
-    // { session }
+    { $inc: { credits: 2 } },
+    { session },
   );
 
   await Transaction.create(
-    {
-      userId: consultantId,
-      credits: 2,
-      type: "APPOINTMENT_EARNING",
-    }
-    // { session }
+    [
+      {
+        userId: consultantId,
+        credits: 2,
+        type: "APPOINTMENT_EARNING",
+      },
+    ],
+    { session },
   );
 };

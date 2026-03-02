@@ -9,6 +9,7 @@ import paymentRouter from "../routes/payment.route";
 import studentRouter from "../routes/student.route";
 import uploadRouter from "../routes/upload.route";
 import profileRouter from "../routes/profile.route";
+import transactionRouter from "../routes/transaction.route";
 
 export const bootstrap = (app: Application) => {
   app.use("/auth", authRouter);
@@ -22,4 +23,5 @@ export const bootstrap = (app: Application) => {
   app.use("/availabilities", availabilityRouter);
   app.use("/bookings", bookingRouter);
   app.use("/payment", paymentRouter);
+  app.use("/transactions", transactionRouter);
 };

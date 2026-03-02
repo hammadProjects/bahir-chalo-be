@@ -1,6 +1,6 @@
 import multer from "multer";
 import { CloudinaryStorage } from "multer-storage-cloudinary";
-import { cloudinary } from "../config/cloudinaryConfig";
+import { cloudinary } from "../config/cloudinary.config";
 import path from "path";
 
 const uploadMiddleware = (foldername: string) => {
@@ -27,7 +27,6 @@ const uploadMiddleware = (foldername: string) => {
       },
     });
   } catch (error) {
-    console.log(error);
     throw error;
   }
 };

@@ -16,10 +16,11 @@ studentRouter.post(
   limiter(
     "Roadmap generation limit reached for today.",
     24 * 60 * 60 * 1000,
-    1
+    1,
   ),
-  generateRoadmap
+  generateRoadmap,
 );
+
 // get all previous roadmaps
 studentRouter.get("/roadmaps", isAuthenticated, getAllRoadmaps);
 studentRouter.get("/roadmaps/:roadmapId", isAuthenticated, getRoadmapById);

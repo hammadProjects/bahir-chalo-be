@@ -17,7 +17,7 @@ import Booking from "../models/booking.model";
 export const setAvailability = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { _id } = req.user!;
@@ -61,7 +61,7 @@ export const setAvailability = async (
 export const getAvailabilityById = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.params;
@@ -92,7 +92,7 @@ export const getAvailabilityById = async (
 export const getAvailability = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const loggedInUser = req.user!;
@@ -104,7 +104,7 @@ export const getAvailability = async (
     if (!availability)
       throw new CustomError(
         "The consultant does not have any Availability",
-        404
+        404,
       );
 
     return res.json({
@@ -120,14 +120,13 @@ export const getAvailability = async (
 export const getAvailabilityTimeSlots = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { consultantId } = req.params;
-    console.log();
     const bookings = await Booking.find({
       consultantId,
-      status: "scheduled",
+      status: { $ne: "cancelled" },
     });
 
     const availability = await Availability.findOne({
@@ -138,14 +137,14 @@ export const getAvailabilityTimeSlots = async (
     if (!availability)
       throw new CustomError(
         "The consultant does not have any Availability",
-        404
+        404,
       );
 
     const startHours = availability.startTime.getHours();
     const startMinutes = availability.startTime.getMinutes();
     const startTime = setHours(
       setMinutes(new Date(), startMinutes),
-      startHours
+      startHours,
     );
 
     const endHours = availability.endTime.getHours();
@@ -198,8 +197,12 @@ export const getAvailabilityTimeSlots = async (
         }
 
         AvailableSlots[key].push({
-          startTime: current,
-          endTime: addMinutes(current, 30),
+          startTime: new Date(
+            new Date(current.setSeconds(0)).setMilliseconds(0),
+          ),
+          endTime: new Date(
+            new Date(addMinutes(current, 30).setSeconds(0)).setMilliseconds(0),
+          ),
           consultantId: `${consultantId}`,
           availabilityId: `${availability._id}`,
         });
@@ -221,7 +224,7 @@ export const getAvailabilityTimeSlots = async (
 export const deleteAvailability = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.params;
@@ -236,7 +239,7 @@ export const deleteAvailability = async (
       // (todo) - look for equals method to verify if they are equal or not
       throw new CustomError(
         "You are Not Authorized to delete Availability",
-        403
+        403,
       );
 
     if (availability.status === "Booked")

@@ -1,12 +1,15 @@
 import z from "zod";
 
+const passwordError =
+  "Password must be atleast 8 characters, containing upper/lower case letter,number adn special characters";
+
 const strongPassword = z
   .string()
-  .min(8, "Password must be atleast 8 characters")
-  .regex(/[A-Z]/, "Password must contain atleast 1 upper case letter")
-  .regex(/[a-z]/, "Password must contain atleast 1 lower case letter")
-  .regex(/[0-9]/, "Password must contain atleast 1 number")
-  .regex(/[^A-Za-z0-9]/, "Password must contain atleast 1 special character");
+  .min(8, passwordError)
+  .regex(/[A-Z]/, passwordError)
+  .regex(/[a-z]/, passwordError)
+  .regex(/[0-9]/, passwordError)
+  .regex(/[^A-Za-z0-9]/, passwordError);
 
 // --------------Body Schemas---------------
 export const signUpBodySchema = z.object({

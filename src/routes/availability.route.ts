@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { isAuthenticated, isConsultant } from "../middlewares/auth";
 import * as availabilityController from "../controllers/availability.controller";
-import validateRequest from "../middlewares/validateRequest";
 import { setAvailabilityBodySchema } from "../schemas/availability.schema";
 
 const availabilityRouter = Router();
@@ -10,15 +9,14 @@ availabilityRouter.get(
   "/",
   isAuthenticated,
   isConsultant,
-  availabilityController.getAvailability
+  availabilityController.getAvailability,
 );
 
 availabilityRouter.post(
   "/",
   isAuthenticated,
   isConsultant,
-  validateRequest({ bodySchema: setAvailabilityBodySchema }),
-  availabilityController.setAvailability
+  availabilityController.setAvailability,
 );
 
 // availabilityRouter.get(
@@ -35,8 +33,7 @@ availabilityRouter.post(
 
 availabilityRouter.get(
   "/:consultantId/slots",
-  // isAuthenticated,
-  availabilityController.getAvailabilityTimeSlots
+  availabilityController.getAvailabilityTimeSlots,
 );
 
 export default availabilityRouter;

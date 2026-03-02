@@ -5,6 +5,7 @@ declare global {
     export interface Request {
       // why did not used extends?? (read)
       user?: UserDocument;
+      profilePicture?: string;
     }
   }
 }

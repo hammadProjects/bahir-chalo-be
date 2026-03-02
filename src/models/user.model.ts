@@ -97,7 +97,7 @@ const schema = new Schema<UserDocument>(
     // student sub-schema
     studentProfile: studentSchema,
   },
-  { timestamps: true }
+  { timestamps: true },
 );
 
 schema.method("getJwt", function () {

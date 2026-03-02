@@ -13,7 +13,7 @@ import * as consultatService from "../services/consultant.service";
 export const getVerifiedConsultants = async (
   req: Request<{}, getVerifiedConsultantIdQuery, {}>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     let result = getVerifiedConsultantQuerySchema.safeParse(req.query);
@@ -29,7 +29,7 @@ export const getVerifiedConsultants = async (
       data: {
         pagination: {
           consultants,
-          totalConsultants,
+          totalCount: totalConsultants,
           hasNext: page < Math.ceil(totalConsultants / limit),
           hasPrev: page > 1,
           currentPage: page,
@@ -45,7 +45,7 @@ export const getVerifiedConsultants = async (
 export const validateStatus = (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const loggedInUser = req.user;
@@ -66,7 +66,7 @@ export const validateStatus = (
 export const getConsultantById = async (
   req: Request<getConsultantByIdParams, {}, {}>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const result = getConsultantByIdParamsSchema.safeParse(req.params);

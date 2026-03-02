@@ -5,13 +5,13 @@ import { isAuthenticated } from "../middlewares/auth";
 
 const uploadRouter = Router();
 
-const upload = uploadMiddleware("bahir-chalo");
+export const upload = uploadMiddleware("bahir-chalo");
 
 uploadRouter.post(
   "/single",
   isAuthenticated,
   upload.single("file"),
-  uploadSingleFile
+  uploadSingleFile,
 );
 
 export default uploadRouter;

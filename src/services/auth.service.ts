@@ -6,10 +6,11 @@ import { getOtpCode, SAFE_USER_SELECT } from "../utils/utils";
 import { sendEmail } from "../utils/email";
 import { v4 as uuidv4 } from "uuid";
 import { UserDocument } from "../utils/types";
+import { isBefore } from "date-fns";
 
 export const sendOtpToUser = async (
   user: UserDocument,
-  reason: "verify" | "reset"
+  reason: "verify" | "reset",
 ) => {
   let subject: string;
   let body: string;
@@ -37,11 +38,10 @@ export const sendOtpToUser = async (
   sendEmail(user.email, subject, body);
 };
 
-export const signUp = async ({
-  username,
-  email,
-  password,
-}: authSchema.signUpBody) => {
+export const signUp = async (
+  { username, email, password }: authSchema.signUpBody,
+  profilePicture: string,
+) => {
   const findUser = await User.findOne({ email });
   if (findUser)
     throw new CustomError("User with this email already exisits", 400);
@@ -61,8 +61,9 @@ export const signUp = async ({
   sendEmail(
     email,
     "Bahir Chalo OTP Verification Code",
-    `Your OTP code is ${otpCode}`
+    `Your OTP code is ${otpCode}`,
   );
+  user.profilePicture = profilePicture;
   await user.save();
 };
 
@@ -77,13 +78,14 @@ export const signIn = async ({ email, password }: authSchema.signInBody) => {
   if (!isMatched) throw new CustomError("Password is Incorrect", 401);
 
   if (findUser.otpVerified == false) {
-    await sendOtpToUser(findUser, "verify");
+    if (!isBefore(new Date(Date.now()), findUser.otpExpiry))
+      await sendOtpToUser(findUser, "verify");
     throw new CustomError("Please Verify your email with OTP", 401);
   }
 
   const token = findUser.getJwt();
   const safeUserSelect = await User.findById(findUser._id).select(
-    SAFE_USER_SELECT
+    SAFE_USER_SELECT,
   );
 
   return { token, user: safeUserSelect };
@@ -110,7 +112,7 @@ export const verifyOtp = async ({
   sendEmail(
     email,
     "Bahir Chalo Account Verified",
-    `Congratulations ${findUser.username}. You are Successfully Verified.`
+    `Congratulations ${findUser.username}. You are Successfully Verified.`,
   );
 
   return { token, user: findUser };
@@ -124,6 +126,12 @@ export const resendVerifyOtp = async ({
   if (findUser.otpVerified)
     throw new CustomError("You are already Verified", 400);
 
+  if (isBefore(new Date(Date.now()), findUser.otpExpiry))
+    throw new CustomError(
+      "OTP already sent. Please wait before requesting a new one.",
+      400,
+    );
+
   await sendOtpToUser(findUser, "verify");
   return { user: findUser };
 };
@@ -133,6 +141,12 @@ export const forgotPassword = async ({
 }: authSchema.forgetPasswordBody) => {
   const findUser = await User.findOne({ email });
   if (!findUser) throw new CustomError("User Not Found", 404);
+
+  if (isBefore(new Date(Date.now()), findUser.passwordResetExpiry))
+    throw new CustomError(
+      "OTP already sent. Please wait before requesting a new one.",
+      400,
+    );
 
   sendOtpToUser(findUser, "reset");
 };

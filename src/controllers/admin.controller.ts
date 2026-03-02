@@ -10,7 +10,7 @@ import {
 export const verifyConsultant = async (
   req: Request<verifyConsultantParams, {}, verifyConsultantBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const { id } = req.params;
@@ -29,7 +29,7 @@ export const verifyConsultant = async (
 export const getPendingConsultants = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const consultants = await User.find({
@@ -52,7 +52,7 @@ export const getPendingConsultants = async (
 export const getAllConsultants = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const consultants = await User.find({
@@ -69,7 +69,6 @@ export const getAllConsultants = async (
       data: { consultants },
     });
   } catch (error) {
-    // console.log(error);
     next(error);
   }
 };

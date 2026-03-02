@@ -7,8 +7,8 @@ export const SAFE_USER_SELECT =
   "-password -otpCode -otpExpiry -passwordResetId -passwordResetExpiry";
 
 export const CloudflarePresetNames = {
-  student: "participant",
-  consultant: "host",
+  student: "group_call_participant",
+  consultant: "group_call_host",
 };
 
 export const PLANS = {

@@ -9,16 +9,20 @@ export const signUp = async (
   next: NextFunction,
 ) => {
   try {
-    const result = authSchema.signUpBodySchema.safeParse(req.body);
-    if (!result.success)
-      throw new CustomError(String(result.error?.message), 400);
+    await authService.signUp(req.body, req.profilePicture!);
 
-    await authService.signUp(req.body);
-
-    return res.status(201).json({
-      success: true,
-      message: `OPT code has been sent to ${req.body?.email}`,
-    });
+    return res
+      .cookie("email", req.body.email, {
+        sameSite: "none",
+        secure: true,
+        httpOnly: true,
+        expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
+      })
+      .status(201)
+      .json({
+        success: true,
+        message: `OPT code has been sent to ${req.body?.email}`,
+      });
   } catch (error) {
     next(error);
   }
@@ -30,19 +34,12 @@ export const signIn = async (
   next: NextFunction,
 ) => {
   try {
-    const result = authSchema.signInBodySchema.safeParse(req.body);
-    if (!result.success)
-      throw new CustomError(String(result.error?.message), 400);
-
-    const { email, password } = result.data;
+    const { email, password } = req.body;
     const { token, user } = await authService.signIn({ email, password });
-    console.log(token);
-
     res
       .cookie("token", token, {
         sameSite: "none",
-        // secure: process.env?.NODE_ENV == "prod",
-        // secure: true,
+        secure: true,
         httpOnly: true,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       }) // 7 days

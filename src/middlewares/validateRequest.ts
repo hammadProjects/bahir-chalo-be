@@ -1,33 +1,37 @@
 import { NextFunction, Request, Response } from "express";
-import { ZodObject } from "zod";
+import { z, ZodError } from "zod";
+import { CustomError } from "./error";
 
-const validateRequest = <T extends ZodObject>({
+type ValidateSchemas = {
+  bodySchema?: z.ZodType;
+  paramsSchema?: z.ZodType;
+  querySchema?: z.ZodType;
+};
+
+export const validate = ({
   bodySchema,
   paramsSchema,
   querySchema,
-}: {
-  bodySchema?: T;
-  paramsSchema?: T;
-  querySchema?: T;
-}) => {
+}: ValidateSchemas) => {
   return (req: Request, res: Response, next: NextFunction) => {
     try {
       if (bodySchema) {
-        bodySchema.safeParse(req.body);
+        bodySchema.parse(req.body); // safe parse does not throws an error
       }
 
       if (paramsSchema) {
-        paramsSchema.safeParse(req.body);
+        paramsSchema.parse(req.params);
       }
 
       if (querySchema) {
-        querySchema.safeParse(req.body);
+        querySchema.parse(req.query);
       }
       next();
     } catch (error) {
+      if (error instanceof ZodError) {
+        return next(new CustomError(error.issues[0].message, 400));
+      }
       next(error);
     }
   };
 };
-
-export default validateRequest;

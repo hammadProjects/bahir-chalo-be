@@ -2,12 +2,15 @@ import express, { Request, Response } from "express";
 import cors from "cors";
 import dotenv from "dotenv";
 dotenv.config();
-import { connectDB } from "./config/database";
+import { connectDB } from "./config/database.config";
 import { bootstrap } from "./utils/bootstrap";
 import { error } from "./middlewares/error";
 import cookieParser from "cookie-parser";
+import { stripeWebhook } from "./controllers/payment.controller";
+import morgan from "morgan";
 
 const app = express();
+// app.use(morgan())
 
 let isConnected = false;
 if (!isConnected) {
@@ -21,6 +24,12 @@ if (process.env?.NODE_ENV === "dev") {
     console.log(`App is running at ${PORT}`);
   });
 }
+
+app.post(
+  "/payment/webhook",
+  express.raw({ type: "application/json" }),
+  stripeWebhook,
+);
 
 app.use(express.json()); // parses data coming from body
 app.use(express.urlencoded({ extended: true }));

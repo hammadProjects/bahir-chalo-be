@@ -15,7 +15,7 @@ function getRealtimeAPI() {
   const hashAPI = Buffer.from(`${orgId}:${apiKey}`).toString("base64");
 
   realtimeAPI = axios.create({
-    baseURL: "https://api.realtime.cloudflare.com/v2",
+    baseURL: "https://api.cloudflare.com/client/v4/accounts/",
     headers: {
       Authorization: `Basic ${hashAPI}`,
       "Content-Type": "application/json",

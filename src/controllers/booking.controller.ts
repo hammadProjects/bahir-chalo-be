@@ -6,10 +6,7 @@ import User from "../models/user.model";
 import { Schema, startSession } from "mongoose";
 import { creditTransaction } from "../utils/creditTransaction";
 import { isAfter, isBefore, isEqual } from "date-fns";
-import {
-  addParticipantsInMeeting,
-  createRealtimeMeeting,
-} from "../utils/realtimeCloudflareAPI";
+import { v4 as uuidv4 } from "uuid";
 import {
   createBookingBody,
   createBookingBodySchema,
@@ -18,13 +15,13 @@ import {
   getMyBookingsQuerySchema,
 } from "../schemas/booking.schema";
 import * as bookingService from "../services/booking.service";
-import { v4 as uuidv4 } from "uuid";
-import { CloudflarePresetNames } from "../utils/utils";
+import { jwt } from "twilio";
+const VideoGrant = jwt.AccessToken.VideoGrant;
 
 export const getMyBookings = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const result = getMyBookingsQuerySchema.safeParse(req.query);
@@ -54,11 +51,11 @@ export const getMyBookings = async (
 export const createBooking = async (
   req: Request<createBookingParams, {}, createBookingBody>,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
-  // const session = await startSession();
+  const session = await startSession();
   try {
-    // session.startTransaction();
+    session.startTransaction();
     const avlResult = createBookingParamsSchema.safeParse(req.params);
     const result = createBookingBodySchema.safeParse(req.body);
 
@@ -71,7 +68,8 @@ export const createBooking = async (
     const { id: availabilityId } = avlResult.data;
     const { startTime, endTime, notes } = result.data;
 
-    const availability = await Availability.findById(availabilityId);
+    const availability =
+      await Availability.findById(availabilityId).session(session);
     const loggedInUser = req.user!;
 
     if (loggedInUser.role !== "student")
@@ -82,24 +80,19 @@ export const createBooking = async (
       throw new CustomError("Availability Does NOT Exists", 404);
 
     const consultantId = availability.consultantId;
-    // (todo) - check how this is working no idea
     const booking = await Booking.findOne({
       consultantId,
-      $or: [
-        {
-          startTime: { $lt: endTime },
-          endTime: { $gte: startTime },
-        },
-      ],
-    });
+      startTime: { $lt: endTime },
+      endTime: { $gt: startTime },
+    }).session(session);
 
     if (booking?.status === "scheduled")
-      throw new CustomError("Appointment is Already Booked in this slot", 400);
+      throw new CustomError("Appointment is already booked in this slot", 400);
 
     if (startTime < new Date(Date.now()))
       throw new CustomError("Availability is Expired", 400);
 
-    const consultant = await User.findById(consultantId);
+    const consultant = await User.findById(consultantId).session(session);
 
     if (!consultant) throw new CustomError("Consultant Not Found", 404);
 
@@ -108,7 +101,7 @@ export const createBooking = async (
       throw new CustomError("Insufficient credits", 400);
 
     if (availability.status === "Booked")
-      throw new CustomError("Appointment is Already Booked", 400);
+      throw new CustomError("Appointment is already booked", 400);
 
     const appointment = await Booking.findOne({
       startTime,
@@ -116,7 +109,7 @@ export const createBooking = async (
       consultantId,
       studentId: loggedInUser._id,
       availabilityId,
-    });
+    }).session(session);
 
     if (appointment?.status === "scheduled")
       throw new CustomError("Appointment is already booked", 400);
@@ -125,36 +118,39 @@ export const createBooking = async (
     await creditTransaction({
       studentId: loggedInUser._id as Schema.Types.ObjectId,
       consultantId,
-      // session,
+      session,
     });
 
-    let MeetingResponse;
+    // let MeetingResponse;
 
-    try {
-      MeetingResponse = await createRealtimeMeeting(
-        `${consultant?.username} - ${loggedInUser?.username}`.toUpperCase()
-      );
-    } catch (error) {
-      // await session.abortTransaction();
-      console.log(error);
-      throw new CustomError("Meeting creation failed", 500);
-    }
+    // try {
+    //   MeetingResponse = await createRealtimeMeeting(
+    //     `${consultant?.username} - ${loggedInUser?.username}`.toUpperCase(),
+    //   );
+    // } catch (error) {
+    //   await session.abortTransaction();
+    //   console.error(error);
+    //   throw new CustomError("Meeting creation failed", 500);
+    // }
 
     const newBooking = await Booking.create(
-      {
-        availabilityId,
-        consultantId,
-        studentId: loggedInUser._id,
-        startTime,
-        endTime,
-        status: "scheduled",
-        notes,
-        meetingId: MeetingResponse?.data?.data?.id,
-      }
-      // { session }
+      [
+        {
+          availabilityId,
+          consultantId,
+          studentId: loggedInUser._id,
+          startTime,
+          endTime,
+          status: "scheduled",
+          notes,
+          // meetingId: MeetingResponse?.data?.data?.id,
+          meetingId: uuidv4(),
+        },
+      ],
+      { session },
     );
 
-    // await session.commitTransaction(); // commit the transaction before sending the response
+    await session.commitTransaction(); // commit the transaction before sending the response
 
     // refetch for updated document
     const updatedUser = await User.findById(loggedInUser._id);
@@ -164,30 +160,32 @@ export const createBooking = async (
       success: true,
       message: "Availability Booked Successfully",
       data: {
-        booking: newBooking,
+        booking: newBooking[0], // since the newBooking will be an array
         remainingCredits: updatedUser?.credits,
       },
     });
   } catch (error) {
     next(error);
   } finally {
-    // session.endSession();
+    await session.endSession();
   }
 };
 
 export const cancelBooking = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
+  const session = await startSession();
   try {
+    session.startTransaction();
     const loggedInUser = req.user!;
     const { bookingId } = req.params;
-    const booking = await Booking.findById(bookingId);
+    const booking = await Booking.findById(bookingId).session(session);
 
     if (!booking) throw new CustomError("Booking Not Found", 404);
     if (booking.status !== "scheduled")
-      throw new CustomError("Booking has already been completed", 400);
+      throw new CustomError(`Booking has already been ${booking.status}`, 400);
 
     if (
       !booking.studentId.equals(loggedInUser._id as string) &&
@@ -197,11 +195,21 @@ export const cancelBooking = async (
 
     // Free Availability When Booking is Deleted
     booking.status = "cancelled";
-    await booking.save();
+    await booking.save({ session });
 
-    // loggedInUser?.credits = loggedInUser?.credits + 2;
-    // await loggedInUser.save();
+    await User.findByIdAndUpdate(
+      booking.studentId,
+      { $inc: { credits: 2 } },
+      { session },
+    );
 
+    await User.findByIdAndUpdate(
+      booking.consultantId,
+      { $inc: { credits: -2 } },
+      { session },
+    );
+
+    await session.commitTransaction();
     res.status(200).json({
       success: true,
       message: "Booking Canceled Successfully",
@@ -209,13 +217,15 @@ export const cancelBooking = async (
     });
   } catch (error) {
     next(error);
+  } finally {
+    await session.endSession();
   }
 };
 
 export const getAllBookings = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Populate - Will get Data from User Schema
@@ -235,7 +245,7 @@ export const getAllBookings = async (
 export const getBookingById = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     // Populate - Will get Data from User Schema
@@ -257,9 +267,17 @@ export const getBookingById = async (
 export const joinAppointment = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
+    if (
+      !process.env.TWILIO_ACCOUNT_SID ||
+      !process.env.TWILIO_API_KEY ||
+      !process.env.TWILIO_API_SECRET
+    ) {
+      throw new CustomError("", 500);
+    }
+
     const loggedInUser = req.user;
     const { bookingId } = req.params;
     const booking = await Booking.findById(bookingId);
@@ -270,7 +288,7 @@ export const joinAppointment = async (
 
     if (
       ![`${booking.consultantId}`, `${booking.studentId}`].includes(
-        `${loggedInUser?._id}`
+        `${loggedInUser?._id}`,
       ) ||
       (loggedInUser?.role != "student" && loggedInUser?.role != "consultant")
     )
@@ -278,7 +296,7 @@ export const joinAppointment = async (
 
     const now = new Date(Date.now());
     const beforeFiveMinutes = new Date(
-      new Date(booking?.startTime).getTime() - 5 * 60 * 1000
+      new Date(booking?.startTime).getTime() - 5 * 60 * 1000,
     );
 
     // meeting has already ended
@@ -292,20 +310,23 @@ export const joinAppointment = async (
     //     400
     //   );
 
-    const preset_name =
-      CloudflarePresetNames[loggedInUser?.role as "student" | "consultant"];
-
-    const AddParticipantResponse = await addParticipantsInMeeting(
-      booking?.meetingId,
-      preset_name,
-      `${loggedInUser?._id}`,
-      `${loggedInUser?.username}`
+    const token = new jwt.AccessToken(
+      process.env.TWILIO_ACCOUNT_SID,
+      process.env.TWILIO_API_KEY,
+      process.env.TWILIO_API_SECRET,
+      { identity: String(loggedInUser._id) },
     );
+
+    const videoGrant = new VideoGrant({
+      room: booking.meetingId,
+    });
+
+    token.addGrant(videoGrant);
 
     return res.json({
       success: true,
       data: {
-        token: AddParticipantResponse.data?.data?.token,
+        token: "2b50397337ab64511637bb5300a1d727", // change it with original token
         meetingId: booking?.meetingId,
       },
     });
@@ -317,7 +338,7 @@ export const joinAppointment = async (
 export const completeBooking = async (
   req: Request,
   res: Response,
-  next: NextFunction
+  next: NextFunction,
 ) => {
   try {
     const loggedInUser = req.user;
@@ -327,22 +348,19 @@ export const completeBooking = async (
     if (booking.status != "scheduled")
       throw new CustomError(
         `Appointment cannot be completed as it is already ${booking.status}`,
-        403
+        403,
       );
 
     if (`${booking.consultantId}` != `${loggedInUser?._id}`)
       throw new CustomError(
         "Only related consultant can complete an appointment",
-        403
+        403,
       );
 
-    if (
-      isAfter(booking.endTime, new Date()) ||
-      isEqual(booking.endTime, new Date())
-    )
+    if (isAfter(booking.endTime, new Date()))
       throw new CustomError(
         "You can only complete appointment after it has been completed",
-        400
+        400,
       );
 
     booking.status = "completed";
