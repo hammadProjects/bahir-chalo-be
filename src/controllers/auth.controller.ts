@@ -39,7 +39,7 @@ export const signIn = async (
     res
       .cookie("token", token, {
         sameSite: "none",
-        secure: true,
+        secure: false,
         httpOnly: true,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       }) // 7 days
