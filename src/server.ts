@@ -7,7 +7,12 @@ import { bootstrap } from "./utils/bootstrap";
 import { error } from "./middlewares/error";
 import cookieParser from "cookie-parser";
 import { stripeWebhook } from "./controllers/payment.controller";
-import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
+import YAML from "yamljs";
+import path from "path";
+
+const swaggerPath = path.join(__dirname, "auth.swagger.yaml");
+const swaggerDocument = YAML.load(swaggerPath);
 
 const app = express();
 // app.use(morgan())
@@ -41,6 +46,7 @@ app.use(
     methods: ["GET", "POST", "PATCH", "DELETE", "PUT"],
   }),
 );
+// app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 app.get("/", (req: Request, res: Response) => {
   res.send("Hello from Baahir Chalo BE!");

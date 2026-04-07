@@ -310,23 +310,9 @@ export const joinAppointment = async (
     //     400
     //   );
 
-    const token = new jwt.AccessToken(
-      process.env.TWILIO_ACCOUNT_SID,
-      process.env.TWILIO_API_KEY,
-      process.env.TWILIO_API_SECRET,
-      { identity: String(loggedInUser._id) },
-    );
-
-    const videoGrant = new VideoGrant({
-      room: booking.meetingId,
-    });
-
-    token.addGrant(videoGrant);
-
     return res.json({
       success: true,
       data: {
-        token: "2b50397337ab64511637bb5300a1d727", // change it with original token
         meetingId: booking?.meetingId,
       },
     });

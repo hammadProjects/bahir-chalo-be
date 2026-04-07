@@ -34,12 +34,15 @@ export const signIn = async (
   next: NextFunction,
 ) => {
   try {
+    if (!process.env.NODE_ENV)
+      throw new CustomError("NODE_ENV is not available", 400);
     const { email, password } = req.body;
     const { token, user } = await authService.signIn({ email, password });
+
     res
       .cookie("token", token, {
         sameSite: "none",
-        secure: false,
+        secure: true,
         httpOnly: true,
         expires: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000),
       }) // 7 days
